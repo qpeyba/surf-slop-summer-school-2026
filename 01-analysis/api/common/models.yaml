@@ -1,0 +1,182 @@
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+    BookingStatus:
+      type: string
+      enum:
+        - Активна
+        - ОтмененаКлиентом
+        - ОтмененаСтудией
+        - Завершена
+        - КлиентНеПришёл
+
+    SlotStatus:
+      type: string
+      enum:
+        - Активен
+        - Отменён студией
+
+    EquipmentType:
+      type: string
+      enum:
+        - Своя
+        - Прокат
+
+    Difficulty:
+      type: string
+      enum:
+        - Для новичков
+        - Для опытных
+
+    Client:
+      type: object
+      required:
+        - id
+        - phone
+        - loyaltyPoints
+        - ownEquipment
+      properties:
+        id:
+          type: string
+          format: uuid
+        phone:
+          type: string
+        allergies:
+          type: array
+          items:
+            type: string
+        loyaltyPoints:
+          type: integer
+          format: int32
+        loyaltyStatus:
+          type: string
+          nullable: true
+        ownEquipment:
+          type: boolean
+
+    Instructor:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - rating
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+        rating:
+          type: number
+        specialization:
+          type: string
+          nullable: true
+
+    Slot:
+      type: object
+      required:
+        - id
+        - dateTime
+        - menu
+        - difficulty
+        - instructorId
+        - capacity
+        - bookedCount
+        - price
+        - address
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        dateTime:
+          type: string
+          format: date-time
+        menu:
+          type: string
+        photoUrls:
+          type: array
+          items:
+            type: string
+        difficulty:
+          $ref: '#/components/schemas/Difficulty'
+        instructorId:
+          type: string
+          format: uuid
+        capacity:
+          type: integer
+          format: int32
+        bookedCount:
+          type: integer
+          format: int32
+        price:
+          type: number
+        address:
+          type: string
+        status:
+          $ref: '#/components/schemas/SlotStatus'
+
+    Booking:
+      type: object
+      required:
+        - id
+        - clientId
+        - slotId
+        - createdAt
+        - status
+        - equipmentType
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        slotId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        equipmentType:
+          $ref: '#/components/schemas/EquipmentType'
+        refundAmount:
+          type: number
+          nullable: true
+        reviewRating:
+          type: integer
+          nullable: true
+        reviewText:
+          type: string
+          nullable: true
+
+    Page:
+      type: object
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        total:
+          type: integer
+          format: int32
