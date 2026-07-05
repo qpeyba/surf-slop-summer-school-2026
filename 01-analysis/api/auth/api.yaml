@@ -1,0 +1,73 @@
+openapi: "3.0.3"
+info:
+  title: Auth API — «Шеф-стол»
+  version: "0.1.0"
+
+servers:
+  - url: /api/v1
+
+security: []
+
+paths:
+  /auth/otp/request:
+    post:
+      operationId: requestOtp
+      summary: Запрос SMS-кода
+      description: Отправляет одноразовый код подтверждения на указанный номер телефона.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './models.yaml#/components/schemas/OtpRequest'
+      responses:
+        '202':
+          description: SMS-код отправлен
+          content:
+            application/json:
+              schema:
+                $ref: './models.yaml#/components/schemas/OtpResponse'
+        '429':
+          description: Превышен лимит запросов
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "rate_limited"
+                message: "Слишком много запросов. Повторите позже."
+
+  /auth/otp/verify:
+    post:
+      operationId: verifyOtp
+      summary: Проверка SMS-кода
+      description: Проверяет одноразовый код и возвращает токен доступа. Токен используется для всех последующих запросов к API.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './models.yaml#/components/schemas/OtpVerifyRequest'
+      responses:
+        '200':
+          description: Успешная авторизация
+          content:
+            application/json:
+              schema:
+                $ref: './models.yaml#/components/schemas/TokenResponse'
+        '409':
+          description: Неверный код подтверждения
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "invalid_code"
+                message: "Неверный код подтверждения."
+
+components:
+  securitySchemes:
+    Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

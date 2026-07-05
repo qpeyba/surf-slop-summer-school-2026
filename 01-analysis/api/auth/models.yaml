@@ -1,0 +1,48 @@
+components:
+  schemas:
+    OtpRequest:
+      type: object
+      required:
+        - phone
+      properties:
+        phone:
+          type: string
+          example: "+79991234567"
+
+    OtpVerifyRequest:
+      type: object
+      required:
+        - phone
+        - code
+      properties:
+        phone:
+          type: string
+          example: "+79991234567"
+        code:
+          type: string
+          example: "4821"
+
+    OtpResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+
+    TokenResponse:
+      type: object
+      required:
+        - accessToken
+        - tokenType
+        - expiresIn
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          enum:
+            - bearer
+        expiresIn:
+          type: integer
+          format: int32
