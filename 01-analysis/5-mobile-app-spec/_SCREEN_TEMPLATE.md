@@ -146,7 +146,7 @@ flowchart LR
 
 **Тип:** REST  
 **Метод:** {GET/POST/PUT/DELETE}  
-**Спецификация:** [rigla_network/rest/domains/{domain}.yaml](../../rigla_network/rest/domains/{domain}.yaml) → `{operationId}`
+**Спецификация:** [../api/{domain}/api.yaml](../api/{domain}/api.yaml) → `{operationId}`
 
 **Триггер:** Инициализация
 
@@ -169,37 +169,11 @@ flowchart LR
 
 ---
 
-### {queryName}
-
-**Тип:** GraphQL  
-**Спецификация:** [rigla_network/gql/schema_rigla.graphql](../../rigla_network/gql/schema_rigla.graphql) → `Query.{queryName}`
-
-**Триггер:** Инициализация
-
-**Переменные:**
-
-| Переменная | Тип | Обязательность | Источник | Описание |
-|------------|-----|----------------|----------|----------|
-| `${var}` | {String!/Int} | {Да/Нет} | {Источник} | {Описание} |
-
-**Обработка ответа:**
-
-| Результат | Условие | UI-реакция |
-|-----------|---------|------------|
-| Загрузка | — | Скелетон / Шиммер блока |
-| `data` | Не пуст | Отобразить |
-| `data` | Пуст | Empty state |
-| `errors` | Есть блок | Error state с кнопкой "Обновить" |
-| HTTP 4xx/5xx | — | Error state с кнопкой "Обновить" |
-| Сеть | Нет соединения | Error state с кнопкой "Обновить" |
-
----
-
 ### {endpoint3}
 
 **Тип:** REST  
 **Метод:** {GET/POST/PUT/DELETE}  
-**Спецификация:** [rigla_network/rest/domains/{domain}.yaml](../../rigla_network/rest/domains/{domain}.yaml) → `{operationId}`
+**Спецификация:** [../api/{domain}/api.yaml](../api/{domain}/api.yaml) → `{operationId}`
 
 **Триггер:** Инициализация (после {endpoint1})
 
@@ -226,7 +200,7 @@ flowchart LR
 
 **Тип:** REST  
 **Метод:** {POST/PUT/DELETE}  
-**Спецификация:** [rigla_network/rest/domains/{domain}.yaml](../../rigla_network/rest/domains/{domain}.yaml) → `{operationId}`
+**Спецификация:** [../api/{domain}/api.yaml](../api/{domain}/api.yaml) → `{operationId}`
 
 **Триггер:** {Тап на кнопку / Ввод текста / и т.д.}
 
@@ -248,20 +222,12 @@ flowchart LR
 
 ---
 
-**Доступные спецификации:**
-
-REST API (`rigla_network/rest/domains/`):
-- `authentication.yaml` — авторизация, токены
-- `cart_mine.yaml`, `cart_guest.yaml` — корзина
-- `checkout.yaml` — оформление заказа
-- `customer_profile.yaml` — профиль пользователя
-- `orders.yaml` — заказы
-- `reviews.yaml` — отзывы
-- `wishlist.yaml` — избранное
-- `mindbox_loyalty.yaml` — программа лояльности
-
-GraphQL (`rigla_network/gql/`):
-- `schema_rigla.graphql` — основная схема
+**Доступные спецификации (REST):**
+- `auth` — [../api/auth/api.yaml](../api/auth/api.yaml)
+- `slots` — [../api/slots/api.yaml](../api/slots/api.yaml)
+- `bookings` — [../api/bookings/api.yaml](../api/bookings/api.yaml)
+- `profile` — [../api/profile/api.yaml](../api/profile/api.yaml)
+- `instructors` — [../api/instructors/api.yaml](../api/instructors/api.yaml)
 
 ---
 
@@ -365,29 +331,29 @@ stateDiagram-v2
 
 ## Связанные требования
 
-### Функциональные (REQ-FUNC-*)
+### Функциональные (FR-*)
 
 | ID | Название | Приоритет |
 |----|----------|-----------|
-| REQ-FUNC-XXX | {Название} | {Priority} |
+| FR-X.X | {Название} | {Priority} |
 
-### Интеграции (REQ-INT-*)
-
-| ID | Название | Приоритет |
-|----|----------|-----------|
-| REQ-INT-XXX | {Название} | {Priority} |
-
-### UI (REQ-UI-*)
+### Сценарии использования (UC-*)
 
 | ID | Название | Приоритет |
 |----|----------|-----------|
-| REQ-UI-XXX | {Название} | {Priority} |
+| UC-X | {Название} | {Priority} |
 
-### Данные (REQ-DATA-*)
+### Пользовательские истории (US-*)
 
 | ID | Название | Приоритет |
 |----|----------|-----------|
-| REQ-DATA-XXX | {Название} | {Priority} |
+| US-X | {Название} | {Priority} |
+
+### Нефункциональные (NFR-*)
+
+| ID | Название | Приоритет |
+|----|----------|-----------|
+| NFR-X | {Название} | {Priority} |
 
 ---
 
