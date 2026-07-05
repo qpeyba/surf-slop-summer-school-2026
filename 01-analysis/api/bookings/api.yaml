@@ -41,6 +41,15 @@ paths:
             application/json:
               schema:
                 $ref: './models.yaml#/components/schemas/BookingResponse'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "unauthorized"
+                message: "Требуется авторизация."
         '409':
           description: Нет свободных мест
           content:
@@ -86,6 +95,57 @@ paths:
             application/json:
               schema:
                 $ref: './models.yaml#/components/schemas/BookingPage'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "unauthorized"
+                message: "Требуется авторизация."
+
+  /bookings/{bookingId}:
+    get:
+      operationId: getBooking
+      summary: Детали брони
+      description: >
+        Возвращает бронь по идентификатору.
+        Используется для отображения карточки брони перед отменой, переносом или оценкой.
+        Клиент дополнительно запрашивает слот через GET /slots/{slotId} для получения
+        dateTime, price, menu и других атрибутов слота.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Детали брони
+          content:
+            application/json:
+              schema:
+                $ref: './models.yaml#/components/schemas/BookingResponse'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "unauthorized"
+                message: "Требуется авторизация."
+        '404':
+          description: Бронь не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "booking_not_found"
+                message: "Бронь не найдена."
 
   /bookings/{bookingId}/cancel:
     post:
@@ -110,7 +170,25 @@ paths:
             application/json:
               schema:
                 $ref: './models.yaml#/components/schemas/BookingResponse'
-        '410':
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "unauthorized"
+                message: "Требуется авторизация."
+        '404':
+          description: Бронь не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "booking_not_found"
+                message: "Бронь не найдена."
+        '409':
           description: Бронь не активна
           content:
             application/json:
@@ -148,31 +226,40 @@ paths:
           content:
             application/json:
               schema:
-                $ref: './models.yaml#/components/schemas/BookingResponse'
-        '409':
-          description: На новом слоте нет мест
+                $ref: './models.yaml#/components/schemas/TransferResponse'
+        '401':
+          description: Требуется авторизация
           content:
             application/json:
               schema:
                 $ref: '../common/models.yaml#/components/schemas/Error'
               example:
-                code: "slot_full"
-                message: "На выбранном классе больше нет свободных мест."
-        '410':
-          description: Перенос невозможен
+                code: "unauthorized"
+                message: "Требуется авторизация."
+        '409':
+          description: Конфликт при переносе
           content:
             application/json:
               schema:
                 $ref: '../common/models.yaml#/components/schemas/Error'
               examples:
+                slot_full:
+                  value:
+                    code: "slot_full"
+                    message: "На выбранном классе больше нет свободных мест."
                 booking_not_active:
                   value:
                     code: "booking_not_active"
                     message: "Бронь уже отменена или завершена."
-                slot_cancelled:
-                  value:
-                    code: "slot_cancelled"
-                    message: "Выбранный класс более недоступен."
+        '410':
+          description: Новый слот недоступен
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "slot_cancelled"
+                message: "Выбранный класс более недоступен."
 
   /bookings/{bookingId}/review:
     put:
@@ -202,7 +289,34 @@ paths:
           content:
             application/json:
               schema:
-                $ref: './models.yaml#/components/schemas/BookingResponse'
+                $ref: './models.yaml#/components/schemas/ReviewResponse'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "unauthorized"
+                message: "Требуется авторизация."
+        '400':
+          description: Невалидный рейтинг
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "invalid_rating"
+                message: "Рейтинг должен быть от 1 до 5."
+        '404':
+          description: Бронь не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "booking_not_found"
+                message: "Бронь не найдена."
         '403':
           description: Бронь не завершена
           content:

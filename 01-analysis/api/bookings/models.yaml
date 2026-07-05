@@ -33,6 +33,38 @@ components:
         text:
           type: string
 
+    ReviewResponse:
+      type: object
+      required:
+        - review
+        - instructorRating
+      properties:
+        review:
+          type: object
+          required:
+            - rating
+          properties:
+            rating:
+              type: integer
+              minimum: 1
+              maximum: 5
+            text:
+              type: string
+        instructorRating:
+          type: number
+          description: Обновлённый средний рейтинг шефа.
+
+    TransferResponse:
+      type: object
+      required:
+        - oldBooking
+        - newBooking
+      properties:
+        oldBooking:
+          $ref: '../common/models.yaml#/components/schemas/Booking'
+        newBooking:
+          $ref: '../common/models.yaml#/components/schemas/Booking'
+
     BookingResponse:
       type: object
       required:

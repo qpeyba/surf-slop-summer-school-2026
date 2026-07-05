@@ -32,6 +32,15 @@ paths:
             application/json:
               schema:
                 $ref: '../common/models.yaml#/components/schemas/Instructor'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "unauthorized"
+                message: "Требуется авторизация."
         '404':
           description: Шеф не найден
           content:

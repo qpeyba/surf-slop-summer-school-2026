@@ -24,6 +24,15 @@ paths:
             application/json:
               schema:
                 $ref: '../common/models.yaml#/components/schemas/Client'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "unauthorized"
+                message: "Требуется авторизация."
 
     patch:
       operationId: updateProfile
@@ -45,6 +54,15 @@ paths:
             application/json:
               schema:
                 $ref: '../common/models.yaml#/components/schemas/Client'
+        '401':
+          description: Требуется авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "unauthorized"
+                message: "Требуется авторизация."
 
 components:
   securitySchemes:
