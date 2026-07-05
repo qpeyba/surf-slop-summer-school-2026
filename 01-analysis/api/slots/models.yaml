@@ -1,0 +1,15 @@
+components:
+  schemas:
+    SlotPage:
+      type: object
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '../common/models.yaml#/components/schemas/Slot'
+        total:
+          type: integer
+          format: int32

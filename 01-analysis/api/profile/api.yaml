@@ -1,0 +1,54 @@
+openapi: "3.0.3"
+info:
+  title: Profile API — «Шеф-стол»
+  version: "0.1.0"
+
+servers:
+  - url: /api/v1
+
+security:
+  - Bearer: []
+
+paths:
+  /profile:
+    get:
+      operationId: getProfile
+      summary: Профиль клиента
+      description: >
+        Возвращает профиль текущего клиента.
+        loyaltyPoints и loyaltyStatus вычисляются бэкендом — только чтение.
+      responses:
+        '200':
+          description: Профиль клиента
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Client'
+
+    patch:
+      operationId: updateProfile
+      summary: Редактирование профиля
+      description: >
+        Частичное обновление профиля. Разрешены только поля, которые клиент
+        может менять: allergies и ownEquipment.
+        id, phone, loyaltyPoints, loyaltyStatus — read-only (вычисляются бэкендом).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './models.yaml#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Профиль обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Client'
+
+components:
+  securitySchemes:
+    Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

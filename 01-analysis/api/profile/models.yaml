@@ -1,0 +1,11 @@
+components:
+  schemas:
+    UpdateProfileRequest:
+      type: object
+      properties:
+        allergies:
+          type: array
+          items:
+            type: string
+        ownEquipment:
+          type: boolean

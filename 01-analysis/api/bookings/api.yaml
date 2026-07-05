@@ -1,0 +1,221 @@
+openapi: "3.0.3"
+info:
+  title: Bookings API — «Шеф-стол»
+  version: "0.1.0"
+
+servers:
+  - url: /api/v1
+
+security:
+  - Bearer: []
+
+paths:
+  /bookings:
+    post:
+      operationId: createBooking
+      summary: Создание брони
+      description: >
+        Создаёт бронь на выбранный слот.
+        Бэкенд атомарно проверяет статус слота, окно записи (≥10 мин до начала)
+        и наличие свободных мест (bookedCount < capacity).
+        Заголовок Idempotency-Key обязателен для исключения двойного создания
+        при повторной отправке из-за сетевых ошибок.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Уникальный ключ идемпотентности на каждую попытку бронирования.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './models.yaml#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Бронь создана
+          content:
+            application/json:
+              schema:
+                $ref: './models.yaml#/components/schemas/BookingResponse'
+        '409':
+          description: Нет свободных мест
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "slot_full"
+                message: "На этом классе больше нет свободных мест."
+        '410':
+          description: Слот недоступен для записи
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              examples:
+                slot_cancelled:
+                  value:
+                    code: "slot_cancelled"
+                    message: "Класс отменён студией."
+                slot_started:
+                  value:
+                    code: "slot_started"
+                    message: "Запись закрыта. До начала осталось менее 10 минут."
+
+    get:
+      operationId: listBookings
+      summary: Список броней клиента
+      description: >
+        Возвращает историю броней текущего клиента за последние 3 месяца
+        с опциональной фильтрацией по статусу. Пустой массив items — empty state.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '../common/models.yaml#/components/schemas/BookingStatus'
+          description: Статус брони для фильтрации (опционально).
+      responses:
+        '200':
+          description: Список броней
+          content:
+            application/json:
+              schema:
+                $ref: './models.yaml#/components/schemas/BookingPage'
+
+  /bookings/{bookingId}/cancel:
+    post:
+      operationId: cancelBooking
+      summary: Отмена брони клиентом
+      description: >
+        Отменяет активную бронь. Бэкенд переводит бронь в статус «Отменена клиентом»,
+        освобождает место (bookedCount−−) и рассчитывает refundAmount:
+        null — если >12 ч до начала, price × 0.5 — если ≤12 ч.
+        Все расчёты и проверки выполняются на стороне бэкенда.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Бронь отменена
+          content:
+            application/json:
+              schema:
+                $ref: './models.yaml#/components/schemas/BookingResponse'
+        '410':
+          description: Бронь не активна
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "booking_not_active"
+                message: "Бронь уже отменена или завершена."
+
+  /bookings/{bookingId}/transfer:
+    post:
+      operationId: transferBooking
+      summary: Перенос брони на другой слот
+      description: >
+        Переносит активную бронь на новый слот одной атомарной транзакцией:
+        отменяет старую и создаёт новую. Если проверка нового слота не проходит
+        (нет мест, слот отменён) — откат, старая бронь остаётся активной.
+        Новая бронь наследует equipmentType от старой.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './models.yaml#/components/schemas/TransferRequest'
+      responses:
+        '200':
+          description: Бронь перенесена
+          content:
+            application/json:
+              schema:
+                $ref: './models.yaml#/components/schemas/BookingResponse'
+        '409':
+          description: На новом слоте нет мест
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "slot_full"
+                message: "На выбранном классе больше нет свободных мест."
+        '410':
+          description: Перенос невозможен
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              examples:
+                booking_not_active:
+                  value:
+                    code: "booking_not_active"
+                    message: "Бронь уже отменена или завершена."
+                slot_cancelled:
+                  value:
+                    code: "slot_cancelled"
+                    message: "Выбранный класс более недоступен."
+
+  /bookings/{bookingId}/review:
+    put:
+      operationId: upsertReview
+      summary: Оценка шефу (upsert)
+      description: >
+        Создаёт или обновляет оценку шефу для завершённой брони.
+        Одна операция для обоих сценариев: rating 1–5, text — опционально.
+        Бэкенд проверяет booking.status == "Завершена" и пересчитывает рейтинг шефа.
+        Оценку можно редактировать в любой момент после завершения класса.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './models.yaml#/components/schemas/ReviewRequest'
+      responses:
+        '200':
+          description: Оценка сохранена
+          content:
+            application/json:
+              schema:
+                $ref: './models.yaml#/components/schemas/BookingResponse'
+        '403':
+          description: Бронь не завершена
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "booking_not_completed"
+                message: "Оценить шефа можно только после завершения класса."
+
+components:
+  securitySchemes:
+    Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

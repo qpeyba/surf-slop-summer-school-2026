@@ -1,0 +1,56 @@
+components:
+  schemas:
+    CreateBookingRequest:
+      type: object
+      required:
+        - slotId
+        - equipmentType
+      properties:
+        slotId:
+          type: string
+          format: uuid
+        equipmentType:
+          $ref: '../common/models.yaml#/components/schemas/EquipmentType'
+
+    TransferRequest:
+      type: object
+      required:
+        - newSlotId
+      properties:
+        newSlotId:
+          type: string
+          format: uuid
+
+    ReviewRequest:
+      type: object
+      required:
+        - rating
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+
+    BookingResponse:
+      type: object
+      required:
+        - booking
+      properties:
+        booking:
+          $ref: '../common/models.yaml#/components/schemas/Booking'
+
+    BookingPage:
+      type: object
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '../common/models.yaml#/components/schemas/Booking'
+        total:
+          type: integer
+          format: int32

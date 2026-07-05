@@ -1,0 +1,82 @@
+openapi: "3.0.3"
+info:
+  title: Slots API — «Шеф-стол»
+  version: "0.1.0"
+
+servers:
+  - url: /api/v1
+
+security:
+  - Bearer: []
+
+paths:
+  /slots:
+    get:
+      operationId: listSlots
+      summary: Расписание классов
+      description: >
+        Возвращает список классов с фильтрацией по диапазону дат.
+        По умолчанию — 7 дней от текущей даты.
+        Фильтрация разрешена только по дате (FR-1.2).
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Начало периода (включительно). По умолчанию — сегодня.
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Конец периода (включительно). По умолчанию — from + 7 дней.
+      responses:
+        '200':
+          description: Расписание классов
+          content:
+            application/json:
+              schema:
+                $ref: './models.yaml#/components/schemas/SlotPage'
+
+  /slots/{slotId}:
+    get:
+      operationId: getSlot
+      summary: Карточка класса
+      description: >
+        Возвращает детальную информацию о классе:
+        дата и время, меню, фото, сложность, шеф, вместимость,
+        стоимость, адрес, статус (FR-1.4).
+        Свободные места = capacity − bookedCount.
+      parameters:
+        - name: slotId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Карточка класса
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Slot'
+        '404':
+          description: Класс не найден
+          content:
+            application/json:
+              schema:
+                $ref: '../common/models.yaml#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "Класс не найден."
+
+components:
+  securitySchemes:
+    Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
