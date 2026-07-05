@@ -64,10 +64,3 @@ paths:
               example:
                 code: "invalid_code"
                 message: "Неверный код подтверждения."
-
-components:
-  securitySchemes:
-    Bearer:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT

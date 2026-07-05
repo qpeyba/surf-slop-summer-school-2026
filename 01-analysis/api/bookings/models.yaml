@@ -86,3 +86,27 @@ components:
         total:
           type: integer
           format: int32
+
+    BookingWithSlot:
+      allOf:
+        - $ref: '../common/models.yaml#/components/schemas/Booking'
+        - type: object
+          required:
+            - slot
+          properties:
+            slot:
+              $ref: '../common/models.yaml#/components/schemas/Slot'
+
+    BookingPageExpanded:
+      type: object
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingWithSlot'
+        total:
+          type: integer
+          format: int32

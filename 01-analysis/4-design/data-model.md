@@ -121,6 +121,7 @@ erDiagram
 | `photoUrls` | string[] | 👁 R | Ссылки на фотографии блюд |
 | `difficulty` | string | 👁 R | `"Для новичков"` или `"Для опытных"` |
 | `instructorId` | string (FK) | 👁 R | Ссылка на Instructor.id — шеф, ведущий класс |
+| `instructor` | object (inline) | 👁 R | Денормализованный объект шефа `{ id, name, status, rating, specialization }` — **read-projection API**, исключает N+1 при рендере карточки класса (FR-1.4). Каноническая ER-связь — через `instructorId` FK. |
 | `capacity` | int | 👁 R | Общая вместимость: до 12 мест, до 8 — для классов с духовками |
 | `bookedCount` | int | 👁 R | Количество уже забронированных мест. Свободных мест = `capacity − bookedCount` |
 | `price` | decimal | 👁 R | Стоимость участия |

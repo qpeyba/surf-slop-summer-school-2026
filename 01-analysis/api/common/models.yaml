@@ -95,6 +95,7 @@ components:
         - menu
         - difficulty
         - instructorId
+        - instructor
         - capacity
         - bookedCount
         - price
@@ -118,6 +119,8 @@ components:
         instructorId:
           type: string
           format: uuid
+        instructor:
+          $ref: '#/components/schemas/Instructor'
         capacity:
           type: integer
           format: int32

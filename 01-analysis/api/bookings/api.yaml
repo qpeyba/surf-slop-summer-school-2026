@@ -81,6 +81,8 @@ paths:
       description: >
         Возвращает историю броней текущего клиента за последние 3 месяца
         с опциональной фильтрацией по статусу. Пустой массив items — empty state.
+        При expand=slot каждый элемент items содержит полный объект Slot
+        (включая inline instructor), что устраняет N+1 для экрана «Мои брони» (UC-5).
       parameters:
         - name: status
           in: query
@@ -88,13 +90,30 @@ paths:
           schema:
             $ref: '../common/models.yaml#/components/schemas/BookingStatus'
           description: Статус брони для фильтрации (опционально).
+        - name: expand
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - slot
+          style: form
+          explode: true
+          description: >
+            Развернуть связанные сущности. Допустимое значение — `slot`
+            (каждый item ответа получает поле slot с полным объектом Slot).
+            Без параметра возвращается `Page<Booking>` (обратная совместимость).
       responses:
         '200':
           description: Список броней
           content:
             application/json:
               schema:
-                $ref: './models.yaml#/components/schemas/BookingPage'
+                oneOf:
+                  - $ref: './models.yaml#/components/schemas/BookingPage'
+                  - $ref: './models.yaml#/components/schemas/BookingPageExpanded'
         '401':
           description: Требуется авторизация
           content:
