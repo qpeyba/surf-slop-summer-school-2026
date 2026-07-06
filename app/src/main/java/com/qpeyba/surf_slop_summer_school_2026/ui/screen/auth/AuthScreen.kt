@@ -142,7 +142,7 @@ fun AuthScreen(
                 ChefButton(
                     text = "Подтвердить",
                     onClick = { viewModel.onEvent(AuthEvent.VerifyCodePressed) },
-                    enabled = state.code.length == 4 && !state.isLoading,
+                    enabled = state.code.length == 6 && !state.isLoading,
                     isLoading = state.isLoading
                 )
                 Spacer(modifier = Modifier.height(16.dp))

@@ -24,7 +24,7 @@ fun OtpInput(
     onCodeChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
     isError: Boolean = false,
-    codeLength: Int = 4
+    codeLength: Int = 6
 ) {
     Row(
         modifier = modifier,
