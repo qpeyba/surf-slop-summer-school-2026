@@ -4,7 +4,7 @@ import com.qpeyba.surf_slop_summer_school_2026.domain.model.BookingWithSlot
 import com.qpeyba.surf_slop_summer_school_2026.domain.model.CancellationInfo
 
 data class CancelBookingState(
-    val bookingWithSlot: BookingWithSlot,
+    val bookingWithSlot: BookingWithSlot? = null,
     val cancellationInfo: CancellationInfo? = null,
     val isProcessing: Boolean = false
 )

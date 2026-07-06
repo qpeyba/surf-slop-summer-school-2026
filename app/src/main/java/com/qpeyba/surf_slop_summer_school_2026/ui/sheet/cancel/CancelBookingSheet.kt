@@ -54,6 +54,9 @@ fun CancelBookingSheet(
         viewModel.init(bookingWithSlot)
     }
 
+    val booking = state.bookingWithSlot
+    if (booking == null) return
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
@@ -68,18 +71,18 @@ fun CancelBookingSheet(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = bookingWithSlot.slot.menu ?: "Программа",
+                text = booking.slot.menu ?: "Программа",
                 fontWeight = FontWeight.Medium,
                 fontSize = 16.sp,
                 color = TextPrimary
             )
             Text(
-                text = DateFormatter.toReadableDateTime(bookingWithSlot.slot.dateTime),
+                text = DateFormatter.toReadableDateTime(booking.slot.dateTime),
                 fontSize = 14.sp,
                 color = TextSecondary
             )
-            if (bookingWithSlot.slot.instructor != null) {
-                ChefInfoRow(name = bookingWithSlot.slot.instructor.name, rating = bookingWithSlot.slot.instructor.rating)
+            if (booking.slot.instructor != null) {
+                ChefInfoRow(name = booking.slot.instructor.name, rating = booking.slot.instructor.rating)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -115,7 +118,7 @@ fun CancelBookingSheet(
                     text = "Да, отменить",
                     onClick = {
                         viewModel.onEvent(CancelBookingEvent.ConfirmPressed)
-                        onConfirmed(bookingWithSlot.booking.id)
+                        onConfirmed(booking.booking.id)
                     },
                     enabled = !state.isProcessing
                 )

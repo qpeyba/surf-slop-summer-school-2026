@@ -15,9 +15,7 @@ class CancelBookingViewModel @Inject constructor(
     private val cancelBookingUseCase: CancelBookingUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(CancelBookingState(
-        bookingWithSlot = null!!
-    ))
+    private val _state = MutableStateFlow(CancelBookingState())
     val state = _state.asStateFlow()
 
     fun init(bookingWithSlot: com.qpeyba.surf_slop_summer_school_2026.domain.model.BookingWithSlot) {
@@ -35,9 +33,10 @@ class CancelBookingViewModel @Inject constructor(
     fun onEvent(event: CancelBookingEvent) {
         when (event) {
             is CancelBookingEvent.ConfirmPressed -> {
+                val bookingId = _state.value.bookingWithSlot?.booking?.id ?: return
                 viewModelScope.launch {
                     _state.value = _state.value.copy(isProcessing = true)
-                    cancelBookingUseCase(_state.value.bookingWithSlot.booking.id)
+                    cancelBookingUseCase(bookingId)
                     _state.value = _state.value.copy(isProcessing = false)
                 }
             }
