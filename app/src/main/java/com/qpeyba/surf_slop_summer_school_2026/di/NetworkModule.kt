@@ -7,6 +7,7 @@ import com.qpeyba.surf_slop_summer_school_2026.data.remote.api.InstructorsApi
 import com.qpeyba.surf_slop_summer_school_2026.data.remote.api.ProfileApi
 import com.qpeyba.surf_slop_summer_school_2026.data.remote.api.SlotsApi
 import com.qpeyba.surf_slop_summer_school_2026.data.remote.interceptor.AuthInterceptor
+import com.qpeyba.surf_slop_summer_school_2026.data.remote.interceptor.HttpLoggingInterceptor
 import com.qpeyba.surf_slop_summer_school_2026.data.remote.interceptor.IdempotencyInterceptor
 import com.qpeyba.surf_slop_summer_school_2026.data.remote.interceptor.UnauthorizedInterceptor
 import com.qpeyba.surf_slop_summer_school_2026.util.Constants
@@ -17,7 +18,6 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
@@ -60,17 +60,14 @@ object NetworkModule {
         idempotencyInterceptor: IdempotencyInterceptor,
         unauthorizedInterceptor: UnauthorizedInterceptor
     ): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
         return OkHttpClient.Builder()
             .connectTimeout(Constants.CONNECT_TIMEOUT, TimeUnit.SECONDS)
             .readTimeout(Constants.READ_TIMEOUT, TimeUnit.SECONDS)
             .writeTimeout(Constants.WRITE_TIMEOUT, TimeUnit.SECONDS)
+            .addInterceptor(HttpLoggingInterceptor())
             .addInterceptor(authInterceptor)
             .addInterceptor(idempotencyInterceptor)
             .addInterceptor(unauthorizedInterceptor)
-            .addInterceptor(logging)
             .build()
     }
 
