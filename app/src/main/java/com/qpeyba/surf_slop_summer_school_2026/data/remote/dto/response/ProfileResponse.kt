@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 data class ProfileResponse(
     val id: String,
     val phone: String,
-    val allergies: List<String>,
+    val allergies: List<String> = emptyList(),
     val loyaltyPoints: Int,
-    val loyaltyStatus: String,
+    val loyaltyStatus: String? = null,
     val ownEquipment: Boolean
 )

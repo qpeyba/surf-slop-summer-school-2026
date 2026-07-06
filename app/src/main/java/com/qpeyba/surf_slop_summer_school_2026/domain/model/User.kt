@@ -5,6 +5,6 @@ data class User(
     val phone: String,
     val allergies: List<String>,
     val loyaltyPoints: Int,
-    val loyaltyStatus: String,
+    val loyaltyStatus: String?,
     val ownEquipment: Boolean
 )

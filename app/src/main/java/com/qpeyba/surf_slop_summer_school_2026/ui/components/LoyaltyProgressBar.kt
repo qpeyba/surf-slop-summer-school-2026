@@ -16,7 +16,7 @@ import com.qpeyba.surf_slop_summer_school_2026.ui.theme.TextSecondary
 @Composable
 fun LoyaltyProgressBar(
     points: Int,
-    status: String,
+    status: String?,
     nextLevelPoints: Int? = null,
     modifier: Modifier = Modifier
 ) {
@@ -28,7 +28,7 @@ fun LoyaltyProgressBar(
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "$points баллов · $status",
+            text = if (status != null) "$points баллов · $status" else "$points баллов",
             fontSize = 13.sp,
             color = TextSecondary
         )
