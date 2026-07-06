@@ -34,9 +34,11 @@ func NewRouter(logger *slog.Logger, registrars ...RouteRegistrar) http.Handler {
 	router.Get("/healthz", healthHandler)
 	router.Get("/readyz", healthHandler)
 
-	for _, reg := range registrars {
-		reg.Register(router)
-	}
+	router.Route("/api/v1", func(r chi.Router) {
+		for _, reg := range registrars {
+			reg.Register(r)
+		}
+	})
 
 	return router
 }
