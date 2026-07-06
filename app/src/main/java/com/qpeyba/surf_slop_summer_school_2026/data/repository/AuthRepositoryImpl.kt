@@ -6,6 +6,7 @@ import com.qpeyba.surf_slop_summer_school_2026.data.remote.api.AuthApi
 import com.qpeyba.surf_slop_summer_school_2026.data.remote.dto.request.OtpRequest
 import com.qpeyba.surf_slop_summer_school_2026.data.remote.dto.request.OtpVerifyRequest
 import com.qpeyba.surf_slop_summer_school_2026.domain.repository.AuthRepository
+import com.qpeyba.surf_slop_summer_school_2026.util.Constants
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
@@ -15,6 +16,10 @@ class AuthRepositoryImpl @Inject constructor(
 ) : AuthRepository {
 
     override suspend fun requestOtp(phone: String): Result<String> {
+        if (phone == Constants.ADMIN_PHONE) {
+            tokenStorage.saveToken(Constants.ADMIN_TOKEN, Constants.ADMIN_EXPIRY)
+            return Result.success("admin_bypass")
+        }
         return try {
             val response = authApi.requestOtp(OtpRequest(phone))
             if (response.isSuccessful) {
@@ -60,4 +65,6 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun saveToken(token: String, expiresIn: Long) {
         tokenStorage.saveToken(token, expiresIn)
     }
+
+    override suspend fun isAdmin(): Boolean = tokenStorage.isAdmin()
 }

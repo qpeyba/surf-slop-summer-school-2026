@@ -3,6 +3,7 @@ package com.qpeyba.surf_slop_summer_school_2026.ui.screen.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qpeyba.surf_slop_summer_school_2026.domain.model.EquipmentType
+import com.qpeyba.surf_slop_summer_school_2026.domain.repository.AuthRepository
 import com.qpeyba.surf_slop_summer_school_2026.domain.usecase.auth.LogoutUseCase
 import com.qpeyba.surf_slop_summer_school_2026.domain.usecase.profile.GetProfileUseCase
 import com.qpeyba.surf_slop_summer_school_2026.domain.usecase.profile.UpdateProfileUseCase
@@ -17,7 +18,8 @@ import javax.inject.Inject
 class ProfileViewModel @Inject constructor(
     private val getProfileUseCase: GetProfileUseCase,
     private val updateProfileUseCase: UpdateProfileUseCase,
-    private val logoutUseCase: LogoutUseCase
+    private val logoutUseCase: LogoutUseCase,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProfileState())
@@ -25,6 +27,7 @@ class ProfileViewModel @Inject constructor(
 
     init {
         loadProfile()
+        loadAdminStatus()
     }
 
     fun onEvent(event: ProfileEvent) {
@@ -82,6 +85,13 @@ class ProfileViewModel @Inject constructor(
             updateProfileUseCase(allergies = allergies, ownEquipment = ownEquipment)
             loadProfile()
             _state.value = _state.value.copy(isUpdating = false)
+        }
+    }
+
+    private fun loadAdminStatus() {
+        viewModelScope.launch {
+            val isAdmin = authRepository.isAdmin()
+            _state.value = _state.value.copy(isAdmin = isAdmin)
         }
     }
 }

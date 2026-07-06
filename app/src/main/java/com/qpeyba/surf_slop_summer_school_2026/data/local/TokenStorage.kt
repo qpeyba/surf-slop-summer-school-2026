@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.qpeyba.surf_slop_summer_school_2026.util.Constants
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,6 +41,11 @@ class TokenStorage @Inject constructor(
         val token = prefs.getString(KEY_TOKEN, null)
         val expiresAt = prefs.getLong(KEY_EXPIRES_AT, 0)
         return token != null && System.currentTimeMillis() < expiresAt
+    }
+
+    suspend fun isAdmin(): Boolean {
+        val token = prefs.getString(KEY_TOKEN, null) ?: return false
+        return token == Constants.ADMIN_TOKEN
     }
 
     suspend fun clear() {

@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -89,6 +90,16 @@ fun ProfileScreen(
                         color = TextPrimary,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
+                    if (state.isAdmin) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Администратор",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = com.qpeyba.surf_slop_summer_school_2026.ui.theme.Terracotta,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(20.dp))
                     HorizontalDivider()

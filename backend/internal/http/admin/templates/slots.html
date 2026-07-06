@@ -1,0 +1,56 @@
+{{define "content"}}
+<div class="flex" style="justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+    <h1>Слоты</h1>
+    <a href="/admin/slots/new" class="btn btn-primary">Создать слот</a>
+</div>
+
+{{if .DeleteSlot}}
+<div class="card" style="border: 2px solid #e63946;">
+    <h2 style="color:#e63946; margin-bottom:1rem;">Удалить слот?</h2>
+    <p><strong>Меню:</strong> {{.DeleteSlot.Menu}}</p>
+    <p><strong>Дата:</strong> {{.DeleteSlot.DateTime | formatTime}}</p>
+    <p><strong>Инструктор:</strong> {{.DeleteSlot.InstructorName}}</p>
+    <p class="text-sm" style="margin-top:0.5rem;">Это действие нельзя отменить. Все связанные брони останутся.</p>
+    <form method="POST" action="/admin/slots/delete/{{.DeleteSlot.ID}}" style="margin-top:1rem;">
+        <button type="submit" class="btn btn-danger">Да, удалить</button>
+        <a href="/admin/slots" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
+{{end}}
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Дата/Время</th>
+                <th>Меню</th>
+                <th>Сложность</th>
+                <th>Инструктор</th>
+                <th>Мест</th>
+                <th>Статус</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Slots.Items}}
+            <tr>
+                <td>{{.DateTime | formatTime}}</td>
+                <td>{{.Menu}}</td>
+                <td>{{.Difficulty}}</td>
+                <td>{{.InstructorName}}</td>
+                <td>{{.BookedCount}} / {{.Capacity}}</td>
+                <td><span class="badge {{.Status | statusBadgeClass}}">{{.Status}}</span></td>
+                <td>
+                    <div class="flex">
+                        <a href="/admin/slots/edit/{{.ID}}" class="btn btn-primary btn-sm">Изменить</a>
+                        <a href="/admin/slots/delete/{{.ID}}" class="btn btn-danger btn-sm">Удалить</a>
+                    </div>
+                </td>
+            </tr>
+            {{else}}
+            <tr><td colspan="7" style="text-align:center; color:#999;">Слотов пока нет</td></tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}

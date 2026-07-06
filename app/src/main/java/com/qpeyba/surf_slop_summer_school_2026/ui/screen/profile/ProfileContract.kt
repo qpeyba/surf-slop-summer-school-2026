@@ -7,7 +7,8 @@ import com.qpeyba.surf_slop_summer_school_2026.util.UiState
 data class ProfileState(
     val user: UiState<User> = UiState.Loading,
     val allergiesInput: String = "",
-    val isUpdating: Boolean = false
+    val isUpdating: Boolean = false,
+    val isAdmin: Boolean = false
 )
 
 sealed interface ProfileEvent {

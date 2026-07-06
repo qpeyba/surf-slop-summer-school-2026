@@ -12,4 +12,7 @@ object Constants {
     const val PAGE_SIZE = 20
     const val CANCELLATION_THRESHOLD_HOURS = 12
     const val MIN_BOOKING_MINUTES_BEFORE = 10
+    const val ADMIN_PHONE = "+79999999999"
+    const val ADMIN_TOKEN = "admin-dev-token"
+    const val ADMIN_EXPIRY = 315360000000L
 }

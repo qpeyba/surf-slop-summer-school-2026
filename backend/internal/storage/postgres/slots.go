@@ -124,6 +124,40 @@ WHERE s.id = $1`, id).Scan(
 	return slot, true, nil
 }
 
+func (r *SlotRepository) Create(ctx context.Context, slot Slot) error {
+	_, err := r.db.Exec(ctx, `
+INSERT INTO slots (id, menu, difficulty, photo_urls, instructor_id, start_at, capacity, price, address, status, booked_count)
+VALUES ($1::uuid, $2, $3, $4, $5::uuid, $6, $7, $8, $9, $10, $11)`,
+		slot.ID, slot.Menu, slot.Difficulty, slot.PhotoUrls, slot.InstructorID,
+		slot.DateTime, slot.Capacity, slot.Price, slot.Address, slot.Status, slot.BookedCount,
+	)
+	if err != nil {
+		return fmt.Errorf("create slot: %w", err)
+	}
+	return nil
+}
+
+func (r *SlotRepository) Update(ctx context.Context, slot Slot) error {
+	_, err := r.db.Exec(ctx, `
+UPDATE slots
+SET menu = $2, difficulty = $3, photo_urls = $4, instructor_id = $5::uuid,
+    start_at = $6, capacity = $7, price = $8, address = $9, status = $10
+WHERE id = $1::uuid`, slot.ID, slot.Menu, slot.Difficulty, slot.PhotoUrls, slot.InstructorID,
+		slot.DateTime, slot.Capacity, slot.Price, slot.Address, slot.Status)
+	if err != nil {
+		return fmt.Errorf("update slot: %w", err)
+	}
+	return nil
+}
+
+func (r *SlotRepository) Delete(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM slots WHERE id = $1::uuid`, id)
+	if err != nil {
+		return fmt.Errorf("delete slot: %w", err)
+	}
+	return nil
+}
+
 func slotSelectSQL() string {
 	return `
 SELECT

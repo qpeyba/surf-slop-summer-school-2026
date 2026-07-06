@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qpeyba.surf_slop_summer_school_2026.domain.usecase.auth.RequestOtpUseCase
 import com.qpeyba.surf_slop_summer_school_2026.domain.usecase.auth.VerifyOtpUseCase
+import com.qpeyba.surf_slop_summer_school_2026.domain.repository.AuthRepository
 import com.qpeyba.surf_slop_summer_school_2026.util.Constants
 import com.qpeyba.surf_slop_summer_school_2026.util.PhoneMask
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val requestOtpUseCase: RequestOtpUseCase,
-    private val verifyOtpUseCase: VerifyOtpUseCase
+    private val verifyOtpUseCase: VerifyOtpUseCase,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthState())
@@ -55,6 +57,11 @@ class AuthViewModel @Inject constructor(
             val result = requestOtpUseCase(phone)
             result.fold(
                 onSuccess = { message ->
+                    if (message == "admin_bypass") {
+                        _state.value = _state.value.copy(isLoading = false)
+                        _effect.send(AuthEffect.NavigateToSchedule)
+                        return@launch
+                    }
                     val devCode = extractDevCode(message)
                     if (devCode != null) {
                         Log.d("OTP_DEV", "Dev code: $devCode")

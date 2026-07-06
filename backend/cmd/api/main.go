@@ -12,6 +12,7 @@ import (
 
 	"summer-school-2026/backend/internal/config"
 	httpapi "summer-school-2026/backend/internal/http"
+	"summer-school-2026/backend/internal/http/admin"
 	"summer-school-2026/backend/internal/http/handlers"
 	"summer-school-2026/backend/internal/service/auth"
 	"summer-school-2026/backend/internal/service/booking"
@@ -46,15 +47,22 @@ func main() {
 	profileService := profile.NewService(profileRepo, logger)
 	profileHandler := handlers.NewProfileHandler(profileService)
 
-	bookingService := booking.NewService(postgres.NewBookingRepository(db))
+	bookingRepo := postgres.NewBookingRepository(db)
+	slotRepo := postgres.NewSlotRepository(db)
+	instructorRepo := postgres.NewInstructorRepository(db)
+
+	bookingService := booking.NewService(bookingRepo)
 	bookingHandler := handlers.NewBookingHandler(bookingService)
 
-	slotHandler := handlers.NewSlotHandler(postgres.NewSlotRepository(db))
-	instructorHandler := handlers.NewInstructorHandler(postgres.NewInstructorRepository(db))
+	slotHandler := handlers.NewSlotHandler(slotRepo)
+	instructorHandler := handlers.NewInstructorHandler(instructorRepo)
+
+	adminHandler := admin.NewHandler(db, slotRepo, bookingRepo, instructorRepo)
 
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: httpapi.NewRouter(logger,
+			adminHandler,
 			authHandler,
 			profileHandler,
 			bookingHandler,

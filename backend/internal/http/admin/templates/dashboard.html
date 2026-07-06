@@ -1,0 +1,46 @@
+{{define "content"}}
+<h1 style="margin-bottom: 1.5rem;">Дашборд</h1>
+
+<div class="stats">
+    <div class="stat-card">
+        <div class="value">{{.TotalSlots}}</div>
+        <div class="label">Активных слотов</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{.TotalBookings}}</div>
+        <div class="label">Активных броней</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{.TotalClients}}</div>
+        <div class="label">Клиентов</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 style="margin-bottom: 1rem;">Последние брони</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Клиент</th>
+                <th>Слот</th>
+                <th>Дата</th>
+                <th>Статус</th>
+                <th>Инвентарь</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .RecentBookings}}
+            <tr>
+                <td>{{.ClientPhone}}</td>
+                <td>{{.SlotMenu}}</td>
+                <td>{{.SlotDateTime | formatTime}}</td>
+                <td><span class="badge {{.Status | statusBadgeClass}}">{{.Status}}</span></td>
+                <td>{{.EquipmentType}}</td>
+            </tr>
+            {{else}}
+            <tr><td colspan="5" style="text-align:center; color:#999;">Броней пока нет</td></tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}

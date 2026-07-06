@@ -6,4 +6,5 @@ interface AuthRepository {
     suspend fun hasValidToken(): Boolean
     suspend fun logout()
     suspend fun saveToken(token: String, expiresIn: Long)
+    suspend fun isAdmin(): Boolean
 }

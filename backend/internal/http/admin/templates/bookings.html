@@ -1,0 +1,47 @@
+{{define "content"}}
+<h1 style="margin-bottom: 1.5rem;">Брони</h1>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Клиент</th>
+                <th>Телефон</th>
+                <th>Слот</th>
+                <th>Дата</th>
+                <th>Инструктор</th>
+                <th>Инвентарь</th>
+                <th>Статус</th>
+                <th>Цена</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Bookings}}
+            <tr>
+                <td><span class="code">{{.ClientID}}</span></td>
+                <td>{{.ClientPhone}}</td>
+                <td>{{.SlotMenu}}</td>
+                <td>{{.SlotDateTime | formatTime}}</td>
+                <td>{{.InstructorName}}</td>
+                <td>{{.EquipmentType}}</td>
+                <td><span class="badge {{.Status | statusBadgeClass}}">{{.Status}}</span></td>
+                <td>{{printf "%.0f ₽" .Price}}</td>
+                <td>
+                    {{if isActive .Status}}
+                    <form method="POST" action="/admin/bookings/{{.ID}}/cancel" style="display:inline;">
+                        <input type="hidden" name="reason" value="Отменена администратором">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Отменить бронь {{.ClientPhone}}?')">Отменить</button>
+                    </form>
+                    {{else}}
+                    <span class="text-sm">—</span>
+                    {{end}}
+                </td>
+            </tr>
+            {{else}}
+            <tr><td colspan="9" style="text-align:center; color:#999;">Броней пока нет</td></tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}

@@ -1,0 +1,67 @@
+{{define "content"}}
+<div class="flex" style="justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+    <h1>{{if .IsEdit}}Редактировать слот{{else}}Новый слот{{end}}</h1>
+    <a href="/admin/slots" class="btn btn-secondary">Назад к слотам</a>
+</div>
+
+<div class="card" style="max-width:600px;">
+    <form method="POST" {{if .IsEdit}}action="/admin/slots/edit/{{.Slot.ID}}"{{else}}action="/admin/slots/new"{{end}}>
+        <div class="form-group">
+            <label for="dateTime">Дата и время</label>
+            <input type="datetime-local" id="dateTime" name="dateTime"
+                   value="{{if .IsEdit}}{{.Slot.DateTime | formatDateTimeLocal}}{{end}}" required>
+        </div>
+        <div class="form-group">
+            <label for="menu">Меню</label>
+            <input type="text" id="menu" name="menu" value="{{if .IsEdit}}{{.Slot.Menu}}{{end}}" required>
+        </div>
+        <div class="form-group">
+            <label for="difficulty">Сложность</label>
+            <select id="difficulty" name="difficulty" required>
+                <option value="">— Выберите —</option>
+                {{$diff := ""}}{{if .IsEdit}}{{$diff = .Slot.Difficulty}}{{end}}
+                <option value="Для новичков" {{if eq $diff "Для новичков"}}selected{{end}}>Для новичков</option>
+                <option value="Для опытных" {{if eq $diff "Для опытных"}}selected{{end}}>Для опытных</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="instructorId">Инструктор</label>
+            <select id="instructorId" name="instructorId" required>
+                <option value="">— Выберите —</option>
+                {{$inst := ""}}{{if .IsEdit}}{{$inst = .Slot.InstructorID}}{{end}}
+                {{range .Instructors}}
+                <option value="{{.ID}}" {{if eq $inst .ID}}selected{{end}}>
+                    {{.Name}}{{if .Specialization}} — {{.Specialization}}{{end}}
+                </option>
+                {{end}}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="capacity">Вместимость</label>
+            <input type="number" id="capacity" name="capacity" min="1"
+                   value="{{if .IsEdit}}{{.Slot.Capacity}}{{else}}10{{end}}" required>
+        </div>
+        <div class="form-group">
+            <label for="price">Цена (₽)</label>
+            <input type="number" id="price" name="price" step="0.01" min="0"
+                   value="{{if .IsEdit}}{{printf "%.0f" .Slot.Price}}{{else}}5000{{end}}" required>
+        </div>
+        <div class="form-group">
+            <label for="address">Адрес</label>
+            <input type="text" id="address" name="address"
+                   value="{{if .IsEdit}}{{.Slot.Address}}{{end}}" required>
+        </div>
+        <div class="form-group">
+            <label for="status">Статус</label>
+            <select id="status" name="status" required>
+                {{$st := "Активен"}}{{if .IsEdit}}{{$st = .Slot.Status}}{{end}}
+                <option value="Активен" {{if eq $st "Активен"}}selected{{end}}>Активен</option>
+                <option value="Отменён студией" {{if eq $st "Отменён студией"}}selected{{end}}>Отменён студией</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">
+            {{if .IsEdit}}Сохранить изменения{{else}}Создать слот{{end}}
+        </button>
+    </form>
+</div>
+{{end}}

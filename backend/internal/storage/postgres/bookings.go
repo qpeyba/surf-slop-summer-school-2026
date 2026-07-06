@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"summer-school-2026/backend/internal/service/booking"
@@ -13,6 +14,14 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+type BookingFilters struct {
+	Status   *string
+	ClientID *string
+	SlotID   *string
+	DateFrom *time.Time
+	DateTo   *time.Time
+}
 
 type BookingRepository struct {
 	db *pgxpool.Pool
@@ -183,6 +192,49 @@ LIMIT $`+fmt.Sprint(len(args)+1)+` OFFSET $`+fmt.Sprint(len(args)+2), queryArgs.
 		return booking.BookingList{}, fmt.Errorf("iterate bookings: %w", err)
 	}
 	return booking.BookingList{Items: items, Total: total}, nil
+}
+
+func (r *BookingRepository) ListAll(ctx context.Context, limit, offset int, filters BookingFilters) ([]booking.Booking, int, error) {
+	where, args := bookingAllWhere(filters)
+
+	var total int
+	if err := r.db.QueryRow(ctx, `SELECT count(*) FROM bookings b JOIN slots s ON s.id = b.slot_id`+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count all bookings: %w", err)
+	}
+
+	queryArgs := append(args, limit, offset)
+	rows, err := r.db.Query(ctx, bookingSelectSQL()+`
+`+where+`
+ORDER BY s.start_at DESC, b.created_at DESC
+LIMIT $`+fmt.Sprint(len(args)+1)+` OFFSET $`+fmt.Sprint(len(args)+2), queryArgs...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("query all bookings: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]booking.Booking, 0)
+	for rows.Next() {
+		item, err := scanBooking(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate all bookings: %w", err)
+	}
+	return items, total, nil
+}
+
+func (r *BookingRepository) CancelByAdmin(ctx context.Context, bookingID string, reason string) error {
+	_, err := r.db.Exec(ctx, `
+UPDATE bookings
+SET status = 'ОтмененаСтудией', cancelled_at = now()
+WHERE id = $1`, bookingID)
+	if err != nil {
+		return fmt.Errorf("cancel booking by admin: %w", err)
+	}
+	return nil
 }
 
 func (r *BookingRepository) Get(ctx context.Context, clientID, bookingID string) (booking.Booking, error) {
@@ -579,4 +631,32 @@ func bookingScanDest(b *booking.Booking) []any {
 func isUniqueViolation(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "23505"
+}
+
+func bookingAllWhere(filters BookingFilters) (string, []any) {
+	conditions := make([]string, 0)
+	args := make([]any, 0)
+	add := func(condition string, arg any) {
+		args = append(args, arg)
+		conditions = append(conditions, fmt.Sprintf(condition, len(args)))
+	}
+	if filters.Status != nil {
+		add("b.status = $%d", *filters.Status)
+	}
+	if filters.ClientID != nil {
+		add("b.client_id = $%d::uuid", *filters.ClientID)
+	}
+	if filters.SlotID != nil {
+		add("b.slot_id = $%d::uuid", *filters.SlotID)
+	}
+	if filters.DateFrom != nil {
+		add("s.start_at >= $%d", *filters.DateFrom)
+	}
+	if filters.DateTo != nil {
+		add("s.start_at <= $%d", *filters.DateTo)
+	}
+	if len(conditions) == 0 {
+		return "", args
+	}
+	return " WHERE " + strings.Join(conditions, " AND "), args
 }

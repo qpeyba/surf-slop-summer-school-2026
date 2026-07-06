@@ -15,7 +15,7 @@ type RouteRegistrar interface {
 	Register(r chi.Router)
 }
 
-func NewRouter(logger *slog.Logger, registrars ...RouteRegistrar) http.Handler {
+func NewRouter(logger *slog.Logger, adminRegistrar RouteRegistrar, registrars ...RouteRegistrar) http.Handler {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -33,6 +33,10 @@ func NewRouter(logger *slog.Logger, registrars ...RouteRegistrar) http.Handler {
 	})
 	router.Get("/healthz", healthHandler)
 	router.Get("/readyz", healthHandler)
+
+	if adminRegistrar != nil {
+		adminRegistrar.Register(router)
+	}
 
 	router.Route("/api/v1", func(r chi.Router) {
 		for _, reg := range registrars {
