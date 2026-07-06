@@ -4,34 +4,20 @@ import (
 	"log/slog"
 	"net/http"
 
-	authapi "summer-school-2026/backend/internal/http/openapi/auth"
-	bookingsapi "summer-school-2026/backend/internal/http/openapi/bookings"
-	instructorsapi "summer-school-2026/backend/internal/http/openapi/instructors"
-	profileapi "summer-school-2026/backend/internal/http/openapi/profile"
-	slotsapi "summer-school-2026/backend/internal/http/openapi/slots"
-
 	"github.com/go-chi/chi/v5"
 )
 
-type healthResponse struct {
+type HealthResponse struct {
 	Status string `json:"status"`
 }
 
-type RouterOptions struct {
-	Auth        authapi.ServerInterface
-	Profile     profileapi.ServerInterface
-	Bookings    bookingsapi.ServerInterface
-	Slots       slotsapi.ServerInterface
-	Instructors instructorsapi.ServerInterface
+type RouteRegistrar interface {
+	Register(r chi.Router)
 }
 
-func NewRouter(logger *slog.Logger, options ...RouterOptions) http.Handler {
+func NewRouter(logger *slog.Logger, registrars ...RouteRegistrar) http.Handler {
 	if logger == nil {
 		logger = slog.Default()
-	}
-	var opts RouterOptions
-	if len(options) > 0 {
-		opts = options[0]
 	}
 
 	router := chi.NewRouter()
@@ -47,25 +33,14 @@ func NewRouter(logger *slog.Logger, options ...RouterOptions) http.Handler {
 	})
 	router.Get("/healthz", healthHandler)
 	router.Get("/readyz", healthHandler)
-	if opts.Auth != nil {
-		authapi.HandlerWithOptions(opts.Auth, authapi.ChiServerOptions{BaseRouter: router, ErrorHandlerFunc: OpenAPIErrorHandler})
-	}
-	if opts.Profile != nil {
-		profileapi.HandlerWithOptions(opts.Profile, profileapi.ChiServerOptions{BaseRouter: router, ErrorHandlerFunc: OpenAPIErrorHandler})
-	}
-	if opts.Bookings != nil {
-		bookingsapi.HandlerWithOptions(opts.Bookings, bookingsapi.ChiServerOptions{BaseRouter: router, ErrorHandlerFunc: OpenAPIErrorHandler})
-	}
-	if opts.Slots != nil {
-		slotsapi.HandlerWithOptions(opts.Slots, slotsapi.ChiServerOptions{BaseRouter: router, ErrorHandlerFunc: OpenAPIErrorHandler})
-	}
-	if opts.Instructors != nil {
-		instructorsapi.HandlerWithOptions(opts.Instructors, instructorsapi.ChiServerOptions{BaseRouter: router, ErrorHandlerFunc: OpenAPIErrorHandler})
+
+	for _, reg := range registrars {
+		reg.Register(router)
 	}
 
 	return router
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, healthResponse{Status: "ok"})
+	writeJSON(w, http.StatusOK, HealthResponse{Status: "ok"})
 }

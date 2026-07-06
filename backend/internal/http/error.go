@@ -19,9 +19,12 @@ const (
 	CodeAlreadyCancelled    = "already_cancelled"
 	CodeInvalidCode         = "invalid_code"
 	CodeIdempotencyConflict = "idempotency_conflict"
-	CodePhoneConflict       = "phone_conflict"
 	CodeTooManyRequests     = "too_many_requests"
 	CodeInternalError       = "internal_error"
+	CodeBookingNotActive    = "booking_not_active"
+	CodeBookingNotFound     = "booking_not_found"
+	CodeBookingNotCompleted = "booking_not_completed"
+	CodeInvalidRating       = "invalid_rating"
 )
 
 var ErrUnauthorized = errors.New("unauthorized")

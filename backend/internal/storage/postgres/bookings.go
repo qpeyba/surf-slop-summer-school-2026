@@ -74,25 +74,25 @@ func (r *BookingRepository) Create(ctx context.Context, clientID string, command
 		}
 	}
 
-	slot, err := lockSlot(ctx, tx, command.SlotID)
+	slot, err := lockSlotForBooking(ctx, tx, command.SlotID)
 	if err != nil {
 		return booking.Booking{}, err
 	}
-	if slot.Status == "cancelled" {
-		return booking.Booking{}, booking.AvailabilityError{Err: booking.ErrSlotCancelled, Availability: booking.Availability{AvailableSeats: slot.FreeSeats, AvailableRentalBoards: slot.FreeRentalBoards}}
+	if slot.Status != "Активен" {
+		return booking.Booking{}, booking.ErrSlotCancelled
 	}
-	if !now.Before(slot.StartAt) {
+	if !now.Before(slot.DateTime) || slot.DateTime.Sub(now) < 10*time.Minute {
 		return booking.Booking{}, booking.ErrSlotStarted
 	}
-	if slot.FreeSeats < command.SeatsCount || slot.FreeRentalBoards < command.RentalCount {
-		return booking.Booking{}, booking.AvailabilityError{Err: booking.ErrSlotFull, Availability: booking.Availability{AvailableSeats: slot.FreeSeats, AvailableRentalBoards: slot.FreeRentalBoards}}
+	if slot.BookedCount >= slot.Capacity {
+		return booking.Booking{}, booking.ErrSlotFull
 	}
 
 	var alreadyBooked bool
 	if err := tx.QueryRow(ctx, `
 SELECT EXISTS (
     SELECT 1 FROM bookings
-    WHERE client_id = $1 AND slot_id = $2 AND status = 'active'
+    WHERE client_id = $1 AND slot_id = $2 AND status = 'Активна'
 )`, clientID, command.SlotID).Scan(&alreadyBooked); err != nil {
 		return booking.Booking{}, fmt.Errorf("check double booking: %w", err)
 	}
@@ -102,18 +102,17 @@ SELECT EXISTS (
 
 	if _, err := tx.Exec(ctx, `
 UPDATE slots
-SET free_seats = free_seats - $2,
-    free_rental_boards = free_rental_boards - $3
-WHERE id = $1`, command.SlotID, command.SeatsCount, command.RentalCount); err != nil {
-		return booking.Booking{}, fmt.Errorf("update slot availability: %w", err)
+SET booked_count = booked_count + 1
+WHERE id = $1`, command.SlotID); err != nil {
+		return booking.Booking{}, fmt.Errorf("update slot booked count: %w", err)
 	}
 
 	var bookingID string
 	var createdAt time.Time
 	err = tx.QueryRow(ctx, `
-INSERT INTO bookings (slot_id, client_id, seats_count, rental_count, status, created_at)
-VALUES ($1, $2, $3, $4, 'active', $5)
-RETURNING id::text, created_at`, command.SlotID, clientID, command.SeatsCount, command.RentalCount, now).Scan(&bookingID, &createdAt)
+INSERT INTO bookings (slot_id, client_id, equipment_type, status, created_at)
+VALUES ($1, $2, $3, 'Активна', $4)
+RETURNING id::text, created_at`, command.SlotID, clientID, command.EquipmentType, now).Scan(&bookingID, &createdAt)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return booking.Booking{}, booking.ErrDoubleBooking
@@ -217,25 +216,23 @@ func (r *BookingRepository) Cancel(ctx context.Context, clientID, bookingID stri
 	defer tx.Rollback(ctx)
 
 	var locked struct {
-		OwnerID     string
-		SlotID      string
-		SeatsCount  int
-		RentalCount int
-		Status      string
-		StartAt     time.Time
+		OwnerID   string
+		SlotID    string
+		Status    string
+		StartAt   time.Time
+		Price     float64
 	}
 	err = tx.QueryRow(ctx, `
-SELECT b.client_id::text, b.slot_id::text, b.seats_count, b.rental_count, b.status, s.start_at
+SELECT b.client_id::text, b.slot_id::text, b.status, s.start_at, s.price
 FROM bookings b
 JOIN slots s ON s.id = b.slot_id
 WHERE b.id = $1
 FOR UPDATE OF b, s`, bookingID).Scan(
 		&locked.OwnerID,
 		&locked.SlotID,
-		&locked.SeatsCount,
-		&locked.RentalCount,
 		&locked.Status,
 		&locked.StartAt,
+		&locked.Price,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return booking.Booking{}, booking.ErrNotFound
@@ -246,28 +243,30 @@ FOR UPDATE OF b, s`, bookingID).Scan(
 	if locked.OwnerID != clientID {
 		return booking.Booking{}, booking.ErrForbidden
 	}
-	if locked.Status != "active" {
+	if locked.Status != "Активна" {
 		return booking.Booking{}, booking.ErrAlreadyCancelled
 	}
 
-	status, ok := booking.CancellationStatus(now, locked.StartAt)
-	if !ok {
-		return booking.Booking{}, booking.ErrSlotStarted
+	remaining := locked.StartAt.Sub(now)
+	var refundAmount *float64
+	if remaining <= 12*time.Hour {
+		half := locked.Price * 0.5
+		refundAmount = &half
 	}
 
 	if _, err := tx.Exec(ctx, `
 UPDATE bookings
-SET status = $2, cancelled_at = $3
-WHERE id = $1`, bookingID, status, now); err != nil {
+SET status = 'ОтмененаКлиентом', cancelled_at = $2, refund_amount = $3
+WHERE id = $1`, bookingID, now, refundAmount); err != nil {
 		return booking.Booking{}, fmt.Errorf("update booking cancel status: %w", err)
 	}
-	if status == "cancelled" {
+
+	if remaining > 12*time.Hour {
 		if _, err := tx.Exec(ctx, `
 UPDATE slots
-SET free_seats = free_seats + $2,
-    free_rental_boards = free_rental_boards + $3
-WHERE id = $1`, locked.SlotID, locked.SeatsCount, locked.RentalCount); err != nil {
-			return booking.Booking{}, fmt.Errorf("return slot availability: %w", err)
+SET booked_count = booked_count - 1
+WHERE id = $1`, locked.SlotID); err != nil {
+			return booking.Booking{}, fmt.Errorf("return slot booked count: %w", err)
 		}
 	}
 
@@ -283,6 +282,147 @@ WHERE id = $1`, locked.SlotID, locked.SeatsCount, locked.RentalCount); err != ni
 	}
 	return cancelled, nil
 }
+
+func (r *BookingRepository) Transfer(ctx context.Context, clientID, bookingID, newSlotID string, now time.Time) (booking.Booking, booking.Booking, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return booking.Booking{}, booking.Booking{}, fmt.Errorf("begin transfer: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var old struct {
+		SlotID        string
+		EquipmentType string
+		Status        string
+	}
+	err = tx.QueryRow(ctx, `
+SELECT client_id::text, slot_id::text, equipment_type, status
+FROM bookings
+WHERE id = $1
+FOR UPDATE`, bookingID).Scan(&clientID, &old.SlotID, &old.EquipmentType, &old.Status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return booking.Booking{}, booking.Booking{}, booking.ErrNotFound
+	}
+	if err != nil {
+		return booking.Booking{}, booking.Booking{}, fmt.Errorf("lock old booking: %w", err)
+	}
+	if old.Status != "Активна" {
+		return booking.Booking{}, booking.Booking{}, booking.ErrAlreadyCancelled
+	}
+	if old.SlotID == newSlotID {
+		return booking.Booking{}, booking.Booking{}, booking.ErrInvalidRequest
+	}
+
+	// Lock and validate new slot
+	newSlot, err := lockSlotForBooking(ctx, tx, newSlotID)
+	if err != nil {
+		return booking.Booking{}, booking.Booking{}, err
+	}
+	if newSlot.Status != "Активен" {
+		return booking.Booking{}, booking.Booking{}, booking.ErrSlotCancelled
+	}
+	if !now.Before(newSlot.DateTime) || newSlot.DateTime.Sub(now) < 10*time.Minute {
+		return booking.Booking{}, booking.Booking{}, booking.ErrSlotStarted
+	}
+	if newSlot.BookedCount >= newSlot.Capacity {
+		return booking.Booking{}, booking.Booking{}, booking.ErrSlotFull
+	}
+
+	var alreadyBooked bool
+	if err := tx.QueryRow(ctx, `
+SELECT EXISTS (
+    SELECT 1 FROM bookings
+    WHERE client_id = $1 AND slot_id = $2 AND status = 'Активна'
+)`, clientID, newSlotID).Scan(&alreadyBooked); err != nil {
+		return booking.Booking{}, booking.Booking{}, fmt.Errorf("check double booking: %w", err)
+	}
+	if alreadyBooked {
+		return booking.Booking{}, booking.Booking{}, booking.ErrDoubleBooking
+	}
+
+	// Cancel old booking
+	if _, err := tx.Exec(ctx, `
+UPDATE bookings
+SET status = 'ОтмененаКлиентом', cancelled_at = $2
+WHERE id = $1`, bookingID, now); err != nil {
+		return booking.Booking{}, booking.Booking{}, fmt.Errorf("cancel old booking: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `
+UPDATE slots SET booked_count = booked_count - 1 WHERE id = $1`, old.SlotID); err != nil {
+		return booking.Booking{}, booking.Booking{}, fmt.Errorf("return old slot: %w", err)
+	}
+
+	// Create new booking
+	if _, err := tx.Exec(ctx, `
+UPDATE slots SET booked_count = booked_count + 1 WHERE id = $1`, newSlotID); err != nil {
+		return booking.Booking{}, booking.Booking{}, fmt.Errorf("book new slot: %w", err)
+	}
+
+	var newBookingID string
+	err = tx.QueryRow(ctx, `
+INSERT INTO bookings (slot_id, client_id, equipment_type, status, created_at)
+VALUES ($1, $2, $3, 'Активна', $4)
+RETURNING id::text`, newSlotID, clientID, old.EquipmentType, now).Scan(&newBookingID)
+	if err != nil {
+		return booking.Booking{}, booking.Booking{}, fmt.Errorf("insert new booking: %w", err)
+	}
+
+	oldBooking, _, err := bookingByID(ctx, tx, bookingID)
+	if err != nil {
+		return booking.Booking{}, booking.Booking{}, err
+	}
+	newBooking, _, err := bookingByID(ctx, tx, newBookingID)
+	if err != nil {
+		return booking.Booking{}, booking.Booking{}, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return booking.Booking{}, booking.Booking{}, fmt.Errorf("commit transfer: %w", err)
+	}
+	return oldBooking, newBooking, nil
+}
+
+func (r *BookingRepository) UpsertReview(ctx context.Context, clientID, bookingID string, rating int, text *string) (booking.ReviewResult, error) {
+	var status string
+	var instructorID string
+	err := r.db.QueryRow(ctx, `
+SELECT b.status, s.instructor_id::text
+FROM bookings b
+JOIN slots s ON s.id = b.slot_id
+WHERE b.id = $1 AND b.client_id = $2`, bookingID, clientID).Scan(&status, &instructorID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return booking.ReviewResult{}, booking.ErrNotFound
+	}
+	if err != nil {
+		return booking.ReviewResult{}, fmt.Errorf("check booking for review: %w", err)
+	}
+	if status != "Завершена" {
+		return booking.ReviewResult{}, booking.ErrNotCompleted
+	}
+
+	if _, err := r.db.Exec(ctx, `
+UPDATE bookings
+SET review_rating = $3, review_text = $4
+WHERE id = $1 AND client_id = $2`, bookingID, clientID, rating, text); err != nil {
+		return booking.ReviewResult{}, fmt.Errorf("upsert review: %w", err)
+	}
+
+	var newRating float64
+	if err := r.db.QueryRow(ctx, `
+UPDATE instructors
+SET rating = (SELECT COALESCE(AVG(b.review_rating)::numeric(2,1), 5.0)
+              FROM bookings b
+              JOIN slots s2 ON s2.id = b.slot_id
+              WHERE s2.instructor_id = $1 AND b.review_rating IS NOT NULL)
+WHERE id = $1
+RETURNING rating`, instructorID).Scan(&newRating); err != nil {
+		return booking.ReviewResult{}, fmt.Errorf("recalc instructor rating: %w", err)
+	}
+
+	return booking.ReviewResult{Review: booking.Review{Rating: rating, Text: text}, InstructorRating: newRating}, nil
+}
+
+// ---------- helpers ----------
 
 type idempotencyRecord struct {
 	RequestHash string
@@ -325,57 +465,25 @@ VALUES ($1, $2, $3, $4)`, clientID, key, requestHash, now.Add(24*time.Hour))
 	return nil
 }
 
-func lockSlot(ctx context.Context, tx pgx.Tx, slotID string) (booking.Slot, error) {
-	var slot booking.Slot
+type lockSlotRow struct {
+	DateTime    time.Time
+	Status      string
+	Capacity    int
+	BookedCount int
+}
+
+func lockSlotForBooking(ctx context.Context, tx pgx.Tx, slotID string) (lockSlotRow, error) {
+	var slot lockSlotRow
 	err := tx.QueryRow(ctx, `
-SELECT
-    s.id::text,
-    r.id::text,
-    r.name,
-    r.type,
-    r.capacity_cap,
-    r.duration_min,
-    i.id::text,
-    i.name,
-    s.start_at,
-    s.total_seats,
-    s.free_seats,
-    s.free_rental_boards,
-    s.price,
-    s.rental_price,
-    s.meeting_point,
-    s.meeting_point_lat,
-    s.meeting_point_lng,
-    s.status
-FROM slots s
-JOIN routes r ON r.id = s.route_id
-JOIN instructors i ON i.id = s.instructor_id
-WHERE s.id = $1
-FOR UPDATE OF s`, slotID).Scan(
-		&slot.ID,
-		&slot.RouteID,
-		&slot.RouteName,
-		&slot.RouteType,
-		&slot.RouteCapacityCap,
-		&slot.RouteDurationMin,
-		&slot.InstructorID,
-		&slot.InstructorName,
-		&slot.StartAt,
-		&slot.TotalSeats,
-		&slot.FreeSeats,
-		&slot.FreeRentalBoards,
-		&slot.Price,
-		&slot.RentalPrice,
-		&slot.MeetingPoint,
-		&slot.MeetingPointLat,
-		&slot.MeetingPointLng,
-		&slot.Status,
-	)
+SELECT start_at, status, capacity, booked_count
+FROM slots
+WHERE id = $1
+FOR UPDATE`, slotID).Scan(&slot.DateTime, &slot.Status, &slot.Capacity, &slot.BookedCount)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return booking.Slot{}, booking.ErrSlotStarted
+		return lockSlotRow{}, booking.ErrSlotStarted
 	}
 	if err != nil {
-		return booking.Slot{}, fmt.Errorf("lock slot: %w", err)
+		return lockSlotRow{}, fmt.Errorf("lock slot: %w", err)
 	}
 	return slot, nil
 }
@@ -386,15 +494,13 @@ type bookingQuerier interface {
 
 func bookingByID(ctx context.Context, db bookingQuerier, id string) (booking.Booking, bool, error) {
 	var b booking.Booking
-	err := db.QueryRow(ctx, bookingSelectSQL()+`
-WHERE b.id = $1`, id).Scan(bookingScanDest(&b)...)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return booking.Booking{}, false, nil
-	}
-	if err != nil {
+	if err := db.QueryRow(ctx, bookingSelectSQL()+`
+WHERE b.id = $1`, id).Scan(bookingScanDest(&b)...); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return booking.Booking{}, false, nil
+		}
 		return booking.Booking{}, false, fmt.Errorf("query booking by id: %w", err)
 	}
-	b.PriceTotal = b.Slot.Price*b.SeatsCount + b.Slot.RentalPrice*b.RentalCount
 	return b, true, nil
 }
 
@@ -404,77 +510,71 @@ SELECT
     b.id::text,
     b.slot_id::text,
     b.client_id::text,
-    b.seats_count,
-    b.rental_count,
+    b.equipment_type,
     b.status,
     b.created_at,
     b.cancelled_at,
+    b.refund_amount,
+    b.review_rating,
+    b.review_text,
     s.id::text,
-    r.id::text,
-    r.name,
-    r.type,
-    r.capacity_cap,
-    r.duration_min,
+    s.start_at,
+    s.menu,
+    s.photo_urls,
+    s.difficulty,
+    s.capacity,
+    s.booked_count,
+    s.price,
+    s.address,
+    s.status,
     i.id::text,
     i.name,
-    s.start_at,
-    s.total_seats,
-    s.free_seats,
-    s.free_rental_boards,
-    s.price,
-    s.rental_price,
-    s.meeting_point,
-    s.meeting_point_lat,
-    s.meeting_point_lng,
-    s.status
+    i.status,
+    i.rating,
+    i.specialization
 FROM bookings b
 JOIN slots s ON s.id = b.slot_id
-JOIN routes r ON r.id = s.route_id
 JOIN instructors i ON i.id = s.instructor_id
 `
 }
 
-type bookingScanner interface {
-	Scan(...any) error
-}
-
-func scanBooking(scanner bookingScanner) (booking.Booking, error) {
+func scanBooking(scanner interface{ Scan(...any) error }) (booking.Booking, error) {
 	var b booking.Booking
 	if err := scanner.Scan(bookingScanDest(&b)...); err != nil {
 		return booking.Booking{}, fmt.Errorf("scan booking: %w", err)
 	}
-	b.PriceTotal = b.Slot.Price*b.SeatsCount + b.Slot.RentalPrice*b.RentalCount
 	return b, nil
 }
 
 func bookingScanDest(b *booking.Booking) []any {
+	var slotPhotoUrls []string
+	var slotInstructorSpecialization *string
 	return []any{
 		&b.ID,
 		&b.SlotID,
 		&b.ClientID,
-		&b.SeatsCount,
-		&b.RentalCount,
+		&b.EquipmentType,
 		&b.Status,
 		&b.CreatedAt,
 		&b.CancelledAt,
+		&b.RefundAmount,
+		&b.ReviewRating,
+		&b.ReviewText,
 		&b.Slot.ID,
-		&b.Slot.RouteID,
-		&b.Slot.RouteName,
-		&b.Slot.RouteType,
-		&b.Slot.RouteCapacityCap,
-		&b.Slot.RouteDurationMin,
+		&b.Slot.DateTime,
+		&b.Slot.Menu,
+		&slotPhotoUrls,
+		&b.Slot.Difficulty,
+		&b.Slot.Capacity,
+		&b.Slot.BookedCount,
+		&b.Slot.Price,
+		&b.Slot.Address,
+		&b.Slot.Status,
 		&b.Slot.InstructorID,
 		&b.Slot.InstructorName,
-		&b.Slot.StartAt,
-		&b.Slot.TotalSeats,
-		&b.Slot.FreeSeats,
-		&b.Slot.FreeRentalBoards,
-		&b.Slot.Price,
-		&b.Slot.RentalPrice,
-		&b.Slot.MeetingPoint,
-		&b.Slot.MeetingPointLat,
-		&b.Slot.MeetingPointLng,
-		&b.Slot.Status,
+		&b.Slot.InstructorStatus,
+		&b.Slot.InstructorRating,
+		&slotInstructorSpecialization,
 	}
 }
 

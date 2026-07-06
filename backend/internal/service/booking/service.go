@@ -22,6 +22,8 @@ var (
 	ErrNotFound            = errors.New("booking not found")
 	ErrForbidden           = errors.New("booking forbidden")
 	ErrAlreadyCancelled    = errors.New("booking already cancelled")
+	ErrNotCompleted        = errors.New("booking not completed")
+	ErrInvalidRating       = errors.New("invalid rating")
 )
 
 type Client struct {
@@ -29,45 +31,41 @@ type Client struct {
 }
 
 type Booking struct {
-	ID          string
-	SlotID      string
-	ClientID    string
-	SeatsCount  int
-	RentalCount int
-	Status      string
-	PriceTotal  int
-	CreatedAt   time.Time
-	CancelledAt *time.Time
-	Slot        Slot
+	ID            string
+	SlotID        string
+	ClientID      string
+	EquipmentType string
+	Status        string
+	RefundAmount  *float64
+	ReviewRating  *int
+	ReviewText    *string
+	CreatedAt     time.Time
+	CancelledAt   *time.Time
+	Slot          BookingSlot
 }
 
-type Slot struct {
-	ID               string
-	RouteID          string
-	RouteName        string
-	RouteType        string
-	RouteCapacityCap int
-	RouteDurationMin int
-	InstructorID     string
-	InstructorName   string
-	StartAt          time.Time
-	TotalSeats       int
-	FreeSeats        int
-	FreeRentalBoards int
-	Price            int
-	RentalPrice      int
-	MeetingPoint     string
-	MeetingPointLat  float64
-	MeetingPointLng  float64
-	Status           string
+type BookingSlot struct {
+	ID                         string
+	DateTime                   time.Time
+	Menu                       string
+	Difficulty                 string
+	Capacity                   int
+	BookedCount                int
+	Price                      float64
+	Address                    string
+	Status                     string
+	InstructorID               string
+	InstructorName             string
+	InstructorStatus           string
+	InstructorRating           float64
+	InstructorSpecialization   *string
 }
 
 type CreateCommand struct {
 	Token          string
 	IdempotencyKey string
 	SlotID         string
-	SeatsCount     int
-	RentalCount    int
+	EquipmentType  string
 }
 
 type ListCommand struct {
@@ -77,24 +75,33 @@ type ListCommand struct {
 	Offset int
 }
 
+type TransferCommand struct {
+	Token      string
+	BookingID  string
+	NewSlotID  string
+}
+
+type UpsertReviewCommand struct {
+	Token     string
+	BookingID string
+	Rating    int
+	Text      *string
+}
+
+type Review struct {
+	Rating int     `json:"rating"`
+	Text   *string `json:"text,omitempty"`
+}
+
+type ReviewResult struct {
+	Review           Review
+	InstructorRating float64
+}
+
 type BookingList struct {
 	Items []Booking
 	Total int
 }
-
-type Availability struct {
-	AvailableSeats        int
-	AvailableRentalBoards int
-}
-
-type AvailabilityError struct {
-	Err          error
-	Availability Availability
-}
-
-func (e AvailabilityError) Error() string { return e.Err.Error() }
-
-func (e AvailabilityError) Unwrap() error { return e.Err }
 
 type Repository interface {
 	ClientBySessionTokenHash(ctx context.Context, tokenHash string) (Client, bool, error)
@@ -102,6 +109,8 @@ type Repository interface {
 	List(ctx context.Context, clientID string, command ListCommand) (BookingList, error)
 	Get(ctx context.Context, clientID, bookingID string) (Booking, error)
 	Cancel(ctx context.Context, clientID, bookingID string, now time.Time) (Booking, error)
+	Transfer(ctx context.Context, clientID, bookingID, newSlotID string, now time.Time) (Booking, Booking, error)
+	UpsertReview(ctx context.Context, clientID, bookingID string, rating int, text *string) (ReviewResult, error)
 }
 
 type Service struct {
@@ -114,7 +123,10 @@ func NewService(repo Repository) *Service {
 }
 
 func (s *Service) Create(ctx context.Context, command CreateCommand) (Booking, error) {
-	if command.SeatsCount < 1 || command.SeatsCount > 3 || command.RentalCount < 0 || command.RentalCount > command.SeatsCount || command.SlotID == "" {
+	if command.SlotID == "" || command.EquipmentType == "" {
+		return Booking{}, ErrInvalidRequest
+	}
+	if command.EquipmentType != "Своя" && command.EquipmentType != "Прокат" {
 		return Booking{}, ErrInvalidRequest
 	}
 
@@ -159,6 +171,28 @@ func (s *Service) Cancel(ctx context.Context, token, bookingID string) (Booking,
 	return s.repo.Cancel(ctx, client.ID, bookingID, s.now().UTC())
 }
 
+func (s *Service) Transfer(ctx context.Context, command TransferCommand) (Booking, Booking, error) {
+	if command.BookingID == "" || command.NewSlotID == "" {
+		return Booking{}, Booking{}, ErrNotFound
+	}
+	client, err := s.currentClient(ctx, command.Token)
+	if err != nil {
+		return Booking{}, Booking{}, err
+	}
+	return s.repo.Transfer(ctx, client.ID, command.BookingID, command.NewSlotID, s.now().UTC())
+}
+
+func (s *Service) UpsertReview(ctx context.Context, command UpsertReviewCommand) (ReviewResult, error) {
+	if command.Rating < 1 || command.Rating > 5 {
+		return ReviewResult{}, ErrInvalidRating
+	}
+	client, err := s.currentClient(ctx, command.Token)
+	if err != nil {
+		return ReviewResult{}, err
+	}
+	return s.repo.UpsertReview(ctx, client.ID, command.BookingID, command.Rating, command.Text)
+}
+
 func (s *Service) currentClient(ctx context.Context, token string) (Client, error) {
 	if token == "" {
 		return Client{}, ErrUnauthorized
@@ -174,16 +208,17 @@ func (s *Service) currentClient(ctx context.Context, token string) (Client, erro
 }
 
 func requestHash(command CreateCommand) string {
-	sum := sha256.Sum256([]byte(fmt.Sprintf("%s|%d|%d", command.SlotID, command.SeatsCount, command.RentalCount)))
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%s|%s", command.SlotID, command.EquipmentType)))
 	return base64.RawStdEncoding.EncodeToString(sum[:])
 }
 
-func CancellationStatus(now, startAt time.Time) (string, bool) {
+func CancellationStatus(now, startAt time.Time) (refund bool, ok bool) {
 	if !now.Before(startAt) {
-		return "", false
+		return false, false
 	}
-	if startAt.Sub(now) >= 2*time.Hour {
-		return "cancelled", true
+	remaining := startAt.Sub(now)
+	if remaining > 12*time.Hour {
+		return false, true
 	}
-	return "late_cancel", true
+	return true, true
 }

@@ -2,19 +2,19 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Instructor struct {
-	ID   string
-	Name string
-}
-
-type InstructorList struct {
-	Items []Instructor
-	Total int
+	ID             string
+	Name           string
+	Status         string
+	Rating         float64
+	Specialization *string
 }
 
 type InstructorRepository struct {
@@ -25,37 +25,23 @@ func NewInstructorRepository(db *pgxpool.Pool) *InstructorRepository {
 	return &InstructorRepository{db: db}
 }
 
-func (r *InstructorRepository) List(ctx context.Context, limit, offset int) (InstructorList, error) {
-	if limit == 0 {
-		limit = 20
-	}
-
-	var total int
-	if err := r.db.QueryRow(ctx, `SELECT count(*) FROM instructors`).Scan(&total); err != nil {
-		return InstructorList{}, fmt.Errorf("count instructors: %w", err)
-	}
-
-	rows, err := r.db.Query(ctx, `
-SELECT id::text, name
+func (r *InstructorRepository) GetByID(ctx context.Context, id string) (Instructor, bool, error) {
+	var instructor Instructor
+	err := r.db.QueryRow(ctx, `
+SELECT id::text, name, status, rating, specialization
 FROM instructors
-ORDER BY name ASC
-LIMIT $1 OFFSET $2`, limit, offset)
+WHERE id = $1`, id).Scan(
+		&instructor.ID,
+		&instructor.Name,
+		&instructor.Status,
+		&instructor.Rating,
+		&instructor.Specialization,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Instructor{}, false, nil
+	}
 	if err != nil {
-		return InstructorList{}, fmt.Errorf("query instructors: %w", err)
+		return Instructor{}, false, fmt.Errorf("get instructor: %w", err)
 	}
-	defer rows.Close()
-
-	items := make([]Instructor, 0)
-	for rows.Next() {
-		var instructor Instructor
-		if err := rows.Scan(&instructor.ID, &instructor.Name); err != nil {
-			return InstructorList{}, fmt.Errorf("scan instructor: %w", err)
-		}
-		items = append(items, instructor)
-	}
-	if err := rows.Err(); err != nil {
-		return InstructorList{}, fmt.Errorf("iterate instructors: %w", err)
-	}
-
-	return InstructorList{Items: items, Total: total}, nil
+	return instructor, true, nil
 }

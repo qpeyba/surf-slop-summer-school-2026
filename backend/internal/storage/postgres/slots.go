@@ -12,34 +12,28 @@ import (
 )
 
 type Slot struct {
-	ID               string
-	RouteID          string
-	RouteName        string
-	RouteType        string
-	RouteCapacityCap int
-	RouteDurationMin int
-	InstructorID     string
-	InstructorName   string
-	StartAt          time.Time
-	TotalSeats       int
-	FreeSeats        int
-	FreeRentalBoards int
-	Price            int
-	RentalPrice      int
-	MeetingPoint     string
-	MeetingPointLat  float64
-	MeetingPointLng  float64
-	Status           string
+	ID             string
+	Menu           string
+	Difficulty     string
+	PhotoUrls      []string
+	InstructorID   string
+	InstructorName string
+	InstructorStatus   string
+	InstructorRating   float64
+	InstructorSpecialization *string
+	DateTime       time.Time
+	Capacity       int
+	BookedCount    int
+	Price          float64
+	Address        string
+	Status         string
 }
 
 type SlotFilters struct {
-	DateFrom      *time.Time
-	DateTo        *time.Time
-	RouteTypes    []string
-	InstructorIDs []string
-	OnlyAvailable bool
-	Limit         int
-	Offset        int
+	DateFrom *time.Time
+	DateTo   *time.Time
+	Limit    int
+	Offset   int
 }
 
 type SlotList struct {
@@ -64,33 +58,13 @@ func (r *SlotRepository) List(ctx context.Context, filters SlotFilters) (SlotLis
 	offset := filters.Offset
 
 	var total int
-	if err := r.db.QueryRow(ctx, `SELECT count(*) FROM slots s JOIN routes r ON r.id = s.route_id JOIN instructors i ON i.id = s.instructor_id`+where, args...).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, `SELECT count(*) FROM slots s JOIN instructors i ON i.id = s.instructor_id`+where, args...).Scan(&total); err != nil {
 		return SlotList{}, fmt.Errorf("count slots: %w", err)
 	}
 
 	queryArgs := append(args, limit, offset)
-	rows, err := r.db.Query(ctx, `
-SELECT
-    s.id::text,
-    r.id::text,
-    r.name,
-    r.type,
-    r.capacity_cap,
-    r.duration_min,
-    i.id::text,
-    i.name,
-    s.start_at,
-    s.total_seats,
-    s.free_seats,
-    s.free_rental_boards,
-    s.price,
-    s.rental_price,
-    s.meeting_point,
-    s.meeting_point_lat,
-    s.meeting_point_lng,
-    s.status
+	rows, err := r.db.Query(ctx, slotSelectSQL()+`
 FROM slots s
-JOIN routes r ON r.id = s.route_id
 JOIN instructors i ON i.id = s.instructor_id
 `+where+`
 ORDER BY s.start_at ASC
@@ -102,28 +76,9 @@ LIMIT $`+fmt.Sprint(len(args)+1)+` OFFSET $`+fmt.Sprint(len(args)+2), queryArgs.
 
 	slots := make([]Slot, 0)
 	for rows.Next() {
-		var slot Slot
-		if err := rows.Scan(
-			&slot.ID,
-			&slot.RouteID,
-			&slot.RouteName,
-			&slot.RouteType,
-			&slot.RouteCapacityCap,
-			&slot.RouteDurationMin,
-			&slot.InstructorID,
-			&slot.InstructorName,
-			&slot.StartAt,
-			&slot.TotalSeats,
-			&slot.FreeSeats,
-			&slot.FreeRentalBoards,
-			&slot.Price,
-			&slot.RentalPrice,
-			&slot.MeetingPoint,
-			&slot.MeetingPointLat,
-			&slot.MeetingPointLng,
-			&slot.Status,
-		); err != nil {
-			return SlotList{}, fmt.Errorf("scan slot: %w", err)
+		slot, err := scanSlot(rows)
+		if err != nil {
+			return SlotList{}, err
 		}
 		slots = append(slots, slot)
 	}
@@ -136,47 +91,26 @@ LIMIT $`+fmt.Sprint(len(args)+1)+` OFFSET $`+fmt.Sprint(len(args)+2), queryArgs.
 
 func (r *SlotRepository) GetByID(ctx context.Context, id string) (Slot, bool, error) {
 	var slot Slot
-	err := r.db.QueryRow(ctx, `
-SELECT
-    s.id::text,
-    r.id::text,
-    r.name,
-    r.type,
-    r.capacity_cap,
-    r.duration_min,
-    i.id::text,
-    i.name,
-    s.start_at,
-    s.total_seats,
-    s.free_seats,
-    s.free_rental_boards,
-    s.price,
-    s.rental_price,
-    s.meeting_point,
-    s.meeting_point_lat,
-    s.meeting_point_lng,
-    s.status
+	var instructorSpecialization *string
+	var photoUrls []string
+	err := r.db.QueryRow(ctx, slotSelectSQL()+`
 FROM slots s
-JOIN routes r ON r.id = s.route_id
 JOIN instructors i ON i.id = s.instructor_id
 WHERE s.id = $1`, id).Scan(
 		&slot.ID,
-		&slot.RouteID,
-		&slot.RouteName,
-		&slot.RouteType,
-		&slot.RouteCapacityCap,
-		&slot.RouteDurationMin,
+		&slot.DateTime,
+		&slot.Menu,
+		&photoUrls,
+		&slot.Difficulty,
 		&slot.InstructorID,
 		&slot.InstructorName,
-		&slot.StartAt,
-		&slot.TotalSeats,
-		&slot.FreeSeats,
-		&slot.FreeRentalBoards,
+		&slot.InstructorStatus,
+		&slot.InstructorRating,
+		&instructorSpecialization,
+		&slot.Capacity,
+		&slot.BookedCount,
 		&slot.Price,
-		&slot.RentalPrice,
-		&slot.MeetingPoint,
-		&slot.MeetingPointLat,
-		&slot.MeetingPointLng,
+		&slot.Address,
 		&slot.Status,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -185,7 +119,57 @@ WHERE s.id = $1`, id).Scan(
 	if err != nil {
 		return Slot{}, false, fmt.Errorf("get slot: %w", err)
 	}
+	slot.PhotoUrls = photoUrls
+	slot.InstructorSpecialization = instructorSpecialization
 	return slot, true, nil
+}
+
+func slotSelectSQL() string {
+	return `
+SELECT
+    s.id::text,
+    s.start_at,
+    s.menu,
+    s.photo_urls,
+    s.difficulty,
+    i.id::text,
+    i.name,
+    i.status,
+    i.rating,
+    i.specialization,
+    s.capacity,
+    s.booked_count,
+    s.price,
+    s.address,
+    s.status`
+}
+
+func scanSlot(scanner interface{ Scan(...any) error }) (Slot, error) {
+	var slot Slot
+	var instructorSpecialization *string
+	var photoUrls []string
+	if err := scanner.Scan(
+		&slot.ID,
+		&slot.DateTime,
+		&slot.Menu,
+		&photoUrls,
+		&slot.Difficulty,
+		&slot.InstructorID,
+		&slot.InstructorName,
+		&slot.InstructorStatus,
+		&slot.InstructorRating,
+		&instructorSpecialization,
+		&slot.Capacity,
+		&slot.BookedCount,
+		&slot.Price,
+		&slot.Address,
+		&slot.Status,
+	); err != nil {
+		return Slot{}, fmt.Errorf("scan slot: %w", err)
+	}
+	slot.PhotoUrls = photoUrls
+	slot.InstructorSpecialization = instructorSpecialization
+	return slot, nil
 }
 
 func slotWhere(filters SlotFilters) (string, []any) {
@@ -200,15 +184,6 @@ func slotWhere(filters SlotFilters) (string, []any) {
 	}
 	if filters.DateTo != nil {
 		add("s.start_at <= $%d", *filters.DateTo)
-	}
-	if len(filters.RouteTypes) > 0 {
-		add("r.type = ANY($%d)", filters.RouteTypes)
-	}
-	if len(filters.InstructorIDs) > 0 {
-		add("i.id = ANY($%d::uuid[])", filters.InstructorIDs)
-	}
-	if filters.OnlyAvailable {
-		conditions = append(conditions, "s.free_seats > 0")
 	}
 	if len(conditions) == 0 {
 		return "", args
