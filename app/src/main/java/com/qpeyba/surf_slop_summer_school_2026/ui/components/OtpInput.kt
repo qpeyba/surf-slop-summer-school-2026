@@ -2,8 +2,8 @@ package com.qpeyba.surf_slop_summer_school_2026.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
@@ -27,7 +27,7 @@ fun OtpInput(
     codeLength: Int = 6
 ) {
     Row(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         repeat(codeLength) { index ->
@@ -44,7 +44,7 @@ fun OtpInput(
                         onCodeChanged(newCode)
                     }
                 },
-                modifier = Modifier.width(84.dp).height(52.dp),
+                modifier = Modifier.weight(1f).height(52.dp),
                 textStyle = TextStyle(
                     textAlign = TextAlign.Center,
                     fontSize = 20.sp
