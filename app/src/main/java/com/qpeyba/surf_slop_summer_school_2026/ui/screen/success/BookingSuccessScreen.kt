@@ -83,8 +83,8 @@ fun BookingSuccessScreen(
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Card)
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color(0xFFF2F2F2))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(

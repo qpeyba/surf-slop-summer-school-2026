@@ -64,8 +64,8 @@ fun CancelBookingSheet(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Отменить бронь?",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
                 color = TextPrimary
             )
             Spacer(modifier = Modifier.height(12.dp))

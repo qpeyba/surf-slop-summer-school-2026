@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.qpeyba.surf_slop_summer_school_2026.ui.theme.TextPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,7 +24,8 @@ fun ChefTopAppBar(
         title = {
             Text(
                 text = title,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
                 color = TextPrimary
             )
         },

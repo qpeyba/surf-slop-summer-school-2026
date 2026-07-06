@@ -47,8 +47,8 @@ fun FilterDateSheet(
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
             Text(
-                text = "Фильтр по дате",
-                fontWeight = FontWeight.SemiBold,
+                text = "Фильтры",
+                fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = TextPrimary
             )

@@ -27,14 +27,14 @@ fun DifficultyBadge(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(6.dp),
+        shape = RoundedCornerShape(8.dp),
         color = bgColor
     ) {
         Text(
             text = difficulty.apiValue,
             color = textColor,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Normal,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }

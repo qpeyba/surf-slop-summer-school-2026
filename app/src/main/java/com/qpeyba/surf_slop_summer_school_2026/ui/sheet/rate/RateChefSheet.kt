@@ -91,7 +91,7 @@ fun RateChefSheet(
                 placeholder = { Text("Поделитесь впечатлениями (необязательно)") },
                 supportingText = { Text("${state.text.length}/500") },
                 minLines = 3,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Terracotta,
                     cursorColor = Terracotta

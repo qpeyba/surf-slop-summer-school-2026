@@ -6,7 +6,7 @@ import androidx.compose.ui.unit.dp
 
 val ChefTableShapes = Shapes(
     small = RoundedCornerShape(4.dp),
-    medium = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(8.dp),
     large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(24.dp)
+    extraLarge = RoundedCornerShape(32.dp)
 )

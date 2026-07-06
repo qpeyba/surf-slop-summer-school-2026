@@ -3,6 +3,7 @@ package com.qpeyba.surf_slop_summer_school_2026.ui.components
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -26,20 +27,21 @@ fun ChefChip(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(8.dp),
         color = OliveLight
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 12.dp, end = if (onRemove != null) 4.dp else 12.dp, top = 6.dp, bottom = 6.dp)
+            modifier = Modifier.padding(start = 8.dp, end = if (onRemove != null) 4.dp else 8.dp, top = 4.dp, bottom = 4.dp)
         ) {
-            Text(text = text, color = TextPrimary, fontSize = 13.sp)
+            Text(text = text, color = TextPrimary, fontSize = 12.sp)
             if (onRemove != null) {
-                IconButton(onClick = onRemove, modifier = Modifier) {
+                IconButton(onClick = onRemove, modifier = Modifier.size(20.dp)) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Удалить $text",
-                        tint = TextPrimary
+                        tint = TextPrimary,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }

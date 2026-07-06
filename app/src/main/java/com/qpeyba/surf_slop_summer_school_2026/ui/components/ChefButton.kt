@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,9 +27,9 @@ fun ChefButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(48.dp),
+        modifier = modifier.fillMaxWidth().height(56.dp),
         enabled = enabled && !isLoading,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(32.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Terracotta,
             contentColor = Card,
@@ -36,7 +37,10 @@ fun ChefButton(
             disabledContentColor = Card.copy(alpha = 0.6f)
         )
     ) {
-        Text(text = if (isLoading) "..." else text)
+        Text(
+            text = if (isLoading) "..." else text,
+            style = MaterialTheme.typography.titleMedium
+        )
     }
 }
 
@@ -49,14 +53,17 @@ fun ChefSecondaryButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(48.dp),
+        modifier = modifier.fillMaxWidth().height(56.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(32.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = TextPrimary
         )
     ) {
-        Text(text = text)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium
+        )
     }
 }
 
@@ -69,9 +76,9 @@ fun ChefDestructiveButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(48.dp),
+        modifier = modifier.fillMaxWidth().height(56.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(32.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = DestructiveRed,
             contentColor = Card,
@@ -79,6 +86,9 @@ fun ChefDestructiveButton(
             disabledContentColor = Card.copy(alpha = 0.6f)
         )
     ) {
-        Text(text = text)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium
+        )
     }
 }

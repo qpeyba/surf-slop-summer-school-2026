@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -60,7 +59,7 @@ fun LoadingSkeleton(
         end = Offset(translateAnim, 0f)
     )
 
-    fun Modifier.shimmer(): Modifier = this.clip(RoundedCornerShape(8.dp)).background(brush)
+    fun Modifier.shimmer(): Modifier = this.clip(RoundedCornerShape(32.dp)).background(brush)
 
     when (variant) {
         SkeletonVariant.CARD -> {
@@ -68,10 +67,10 @@ fun LoadingSkeleton(
                 modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(modifier = Modifier.fillMaxWidth().height(160.dp).shimmer())
-                Box(modifier = Modifier.fillMaxWidth().height(20.dp).shimmer())
-                Box(modifier = Modifier.fillMaxWidth(0.7f).height(16.dp).shimmer())
-                Box(modifier = Modifier.fillMaxWidth(0.5f).height(16.dp).shimmer())
+                Box(modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(16.dp)).background(brush))
+                Box(modifier = Modifier.fillMaxWidth().height(24.dp).clip(RoundedCornerShape(8.dp)).background(brush))
+                Box(modifier = Modifier.fillMaxWidth(0.7f).height(16.dp).clip(RoundedCornerShape(8.dp)).background(brush))
+                Box(modifier = Modifier.fillMaxWidth(0.5f).height(16.dp).clip(RoundedCornerShape(8.dp)).background(brush))
             }
         }
         SkeletonVariant.LIST -> {
@@ -80,14 +79,7 @@ fun LoadingSkeleton(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 repeat(3) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(modifier = Modifier.fillMaxWidth().height(120.dp).shimmer())
-                        Box(modifier = Modifier.fillMaxWidth(0.8f).height(20.dp).shimmer())
-                        Box(modifier = Modifier.fillMaxWidth(0.5f).height(16.dp).shimmer())
-                    }
+                    Box(modifier = Modifier.fillMaxWidth().height(280.dp).shimmer())
                 }
             }
         }
@@ -96,19 +88,18 @@ fun LoadingSkeleton(
                 modifier = modifier.fillMaxWidth().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp).shimmer())
-                Box(modifier = Modifier.fillMaxWidth(0.9f).height(28.dp).shimmer())
-                Box(modifier = Modifier.fillMaxWidth(0.6f).height(20.dp).shimmer())
+                Box(modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(16.dp)).background(brush))
+                Box(modifier = Modifier.fillMaxWidth(0.9f).height(28.dp).clip(RoundedCornerShape(8.dp)).background(brush))
+                Box(modifier = Modifier.fillMaxWidth(0.6f).height(20.dp).clip(RoundedCornerShape(8.dp)).background(brush))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(modifier = Modifier.width(80.dp).height(24.dp).shimmer())
-                    Box(modifier = Modifier.width(80.dp).height(24.dp).shimmer())
+                    Box(modifier = Modifier.width(80.dp).height(24.dp).clip(RoundedCornerShape(8.dp)).background(brush))
+                    Box(modifier = Modifier.width(80.dp).height(24.dp).clip(RoundedCornerShape(8.dp)).background(brush))
                 }
-                Box(modifier = Modifier.fillMaxWidth().height(60.dp).shimmer())
-                Box(modifier = Modifier.fillMaxWidth().height(60.dp).shimmer())
-                Box(modifier = Modifier.fillMaxWidth(0.4f).height(32.dp).shimmer())
+                Box(modifier = Modifier.fillMaxWidth().height(36.dp).shimmer())
+                Box(modifier = Modifier.fillMaxWidth().height(56.dp).shimmer())
             }
         }
     }

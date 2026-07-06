@@ -2,18 +2,17 @@ package com.qpeyba.surf_slop_summer_school_2026.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qpeyba.surf_slop_summer_school_2026.ui.theme.DestructiveRed
@@ -25,8 +24,7 @@ fun OtpInput(
     onCodeChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
     isError: Boolean = false,
-    boxSize: Dp = 48.dp,
-    codeLength: Int = 6
+    codeLength: Int = 4
 ) {
     Row(
         modifier = modifier,
@@ -46,14 +44,14 @@ fun OtpInput(
                         onCodeChanged(newCode)
                     }
                 },
-                modifier = Modifier.size(boxSize),
+                modifier = Modifier.width(84.dp).height(52.dp),
                 textStyle = TextStyle(
                     textAlign = TextAlign.Center,
-                    fontSize = 24.sp
+                    fontSize = 20.sp
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 isError = isError,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Terracotta,

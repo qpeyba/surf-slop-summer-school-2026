@@ -28,12 +28,12 @@ fun PhoneInput(
             }
         },
         modifier = modifier.fillMaxWidth(),
-        label = { Text("Номер телефона") },
-        placeholder = { Text("+7 (999) 999-99-99") },
+        label = { Text("Телефон") },
+        placeholder = { Text("+7 ___ ___-__-__") },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         singleLine = true,
         isError = isError,
         supportingText = if (errorMessage != null) {{ Text(errorMessage) }} else null,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp)
     )
 }
