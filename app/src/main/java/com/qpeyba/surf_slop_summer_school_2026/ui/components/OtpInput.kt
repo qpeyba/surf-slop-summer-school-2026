@@ -25,20 +25,21 @@ fun OtpInput(
     onCodeChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
     isError: Boolean = false,
-    boxSize: Dp = 56.dp
+    boxSize: Dp = 48.dp,
+    codeLength: Int = 6
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        repeat(4) { index ->
+        repeat(codeLength) { index ->
             val char = code.getOrNull(index)?.toString() ?: ""
             OutlinedTextField(
                 value = char,
                 onValueChange = { newValue ->
                     if (newValue.length <= 1) {
                         val newCode = code.toCharArray().let {
-                            val arr = it + CharArray(4 - it.size) { ' ' }
+                            val arr = it + CharArray(codeLength - it.size) { ' ' }
                             arr[index] = newValue.firstOrNull() ?: ' '
                             String(arr).trimEnd().trim()
                         }

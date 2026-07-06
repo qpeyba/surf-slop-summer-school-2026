@@ -14,7 +14,8 @@ data class AuthState(
     val isResendAvailable: Boolean = false,
     val resendSecondsLeft: Int = 0,
     val otpAttemptsLeft: Int = 3,
-    val isOtpBlocked: Boolean = false
+    val isOtpBlocked: Boolean = false,
+    val devCode: String? = null
 )
 
 sealed interface AuthEvent {

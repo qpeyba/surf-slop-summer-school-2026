@@ -35,7 +35,7 @@ class AuthViewModel @Inject constructor(
             is AuthEvent.GetCodePressed -> requestOtp()
             is AuthEvent.CodeChanged -> {
                 _state.value = _state.value.copy(code = event.code, error = null)
-                if (event.code.length == 4) {
+                if (event.code.length == 6) {
                     verifyOtp()
                 }
             }
@@ -55,12 +55,15 @@ class AuthViewModel @Inject constructor(
             _state.value = _state.value.copy(isLoading = true, error = null)
             val result = requestOtpUseCase(phone)
             result.fold(
-                onSuccess = {
+                onSuccess = { message ->
+                    val devCode = extractDevCode(message)
                     _state.value = _state.value.copy(
                         step = AuthStep.Otp,
                         isLoading = false,
                         isResendAvailable = false,
-                        resendSecondsLeft = Constants.OTP_RESEND_SECONDS
+                        resendSecondsLeft = Constants.OTP_RESEND_SECONDS,
+                        devCode = devCode,
+                        code = devCode ?: ""
                     )
                     startResendTimer()
                 },
@@ -76,10 +79,15 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    private fun extractDevCode(message: String): String? {
+        val regex = Regex("""\(dev:\s*(\d+)\)""")
+        return regex.find(message)?.groupValues?.getOrNull(1)
+    }
+
     private fun verifyOtp() {
         val phone = PhoneMask.toE164(_state.value.phone)
         val code = _state.value.code
-        if (code.length != 4) return
+        if (code.length != 6) return
 
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)

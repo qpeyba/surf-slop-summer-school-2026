@@ -46,7 +46,7 @@ ALTER TABLE slots
     ADD COLUMN photo_urls text[] NOT NULL DEFAULT '{}',
     ADD COLUMN capacity integer NOT NULL DEFAULT 10,
     ADD COLUMN booked_count integer NOT NULL DEFAULT 0,
-    ADD COLUMN price numeric(10,2) NOT NULL DEFAULT 0,
+    ALTER COLUMN price TYPE numeric(10,2),
     ADD COLUMN address text NOT NULL DEFAULT '';
 
 ALTER TABLE slots
@@ -57,10 +57,10 @@ ALTER TABLE slots
 
 -- Обновляем статусы
 ALTER TABLE slots DROP CONSTRAINT slots_status_chk;
-ALTER TABLE slots
-    ADD CONSTRAINT slots_status_chk CHECK (status IN ('Активен', 'Отменён студией'));
 UPDATE slots SET status = 'Активен' WHERE status = 'scheduled';
 UPDATE slots SET status = 'Отменён студией' WHERE status = 'cancelled';
+ALTER TABLE slots
+    ADD CONSTRAINT slots_status_chk CHECK (status IN ('Активен', 'Отменён студией'));
 
 -- 4. bookings: заменяем seats/rental на equipmentType, добавляем отзывы и возврат
 ALTER TABLE bookings
@@ -82,11 +82,11 @@ ALTER TABLE bookings
 
 -- Обновляем статусы броней
 ALTER TABLE bookings DROP CONSTRAINT bookings_status_chk;
-ALTER TABLE bookings
-    ADD CONSTRAINT bookings_status_chk CHECK (status IN ('Активна', 'ОтмененаКлиентом', 'ОтмененаСтудией', 'Завершена', 'КлиентНеПришёл'));
 UPDATE bookings SET status = 'Активна' WHERE status = 'active';
 UPDATE bookings SET status = 'ОтмененаКлиентом' WHERE status = 'cancelled';
 UPDATE bookings SET status = 'ОтмененаКлиентом' WHERE status = 'late_cancel';
+ALTER TABLE bookings
+    ADD CONSTRAINT bookings_status_chk CHECK (status IN ('Активна', 'ОтмененаКлиентом', 'ОтмененаСтудией', 'Завершена', 'КлиентНеПришёл'));
 
 -- Обновляем уникальный индекс активных броней
 DROP INDEX IF EXISTS bookings_active_client_slot_uidx;

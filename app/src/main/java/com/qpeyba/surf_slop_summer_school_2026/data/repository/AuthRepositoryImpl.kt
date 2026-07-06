@@ -14,11 +14,12 @@ class AuthRepositoryImpl @Inject constructor(
     private val fcmTokenManager: FcmTokenManager
 ) : AuthRepository {
 
-    override suspend fun requestOtp(phone: String): Result<Unit> {
+    override suspend fun requestOtp(phone: String): Result<String> {
         return try {
             val response = authApi.requestOtp(OtpRequest(phone))
             if (response.isSuccessful) {
-                Result.success(Unit)
+                val body = response.body()
+                Result.success(body?.message ?: "")
             } else {
                 Result.failure(Exception("request_otp_failed: ${response.code()}"))
             }

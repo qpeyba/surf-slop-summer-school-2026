@@ -1,20 +1,25 @@
 package com.qpeyba.surf_slop_summer_school_2026.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -47,12 +52,26 @@ private val bottomNavItems = listOf(
 
 @Composable
 fun ChefTableNavHost(
-    checkAuthUseCase: CheckAuthUseCase? = null
+    checkAuthUseCase: CheckAuthUseCase
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val isAuthorized = true // TODO: check via CheckAuthUseCase
+    var isAuthorized by remember { mutableStateOf<Boolean?>(null) }
+
+    LaunchedEffect(Unit) {
+        isAuthorized = checkAuthUseCase()
+    }
+
+    if (isAuthorized == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     val showBottomBar = currentDestination?.let { dest ->
         dest.hasRoute<Route.Schedule>() ||
@@ -87,7 +106,7 @@ fun ChefTableNavHost(
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = if (isAuthorized) Route.Schedule else Route.Auth,
+            startDestination = if (isAuthorized == true) Route.Schedule else Route.Auth,
             modifier = Modifier.padding(paddingValues)
         ) {
             composable<Route.Auth> {

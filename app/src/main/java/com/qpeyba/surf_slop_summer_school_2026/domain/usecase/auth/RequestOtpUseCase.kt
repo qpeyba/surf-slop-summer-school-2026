@@ -6,7 +6,7 @@ import javax.inject.Inject
 class RequestOtpUseCase @Inject constructor(
     private val authRepository: AuthRepository
 ) {
-    suspend operator fun invoke(phone: String): Result<Unit> {
+    suspend operator fun invoke(phone: String): Result<String> {
         return authRepository.requestOtp(phone)
     }
 }
