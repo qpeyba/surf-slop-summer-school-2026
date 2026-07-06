@@ -23,6 +23,7 @@ sealed interface AuthEvent {
     data object GetCodePressed : AuthEvent
     data class CodeChanged(val code: String) : AuthEvent
     data object ResendCodePressed : AuthEvent
+    data object VerifyCodePressed : AuthEvent
 }
 
 sealed interface AuthEffect {

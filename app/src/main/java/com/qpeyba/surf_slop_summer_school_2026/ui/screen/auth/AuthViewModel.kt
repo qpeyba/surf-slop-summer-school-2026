@@ -1,5 +1,6 @@
 package com.qpeyba.surf_slop_summer_school_2026.ui.screen.auth
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qpeyba.surf_slop_summer_school_2026.domain.usecase.auth.RequestOtpUseCase
@@ -35,10 +36,8 @@ class AuthViewModel @Inject constructor(
             is AuthEvent.GetCodePressed -> requestOtp()
             is AuthEvent.CodeChanged -> {
                 _state.value = _state.value.copy(code = event.code, error = null)
-                if (event.code.length == 6) {
-                    verifyOtp()
-                }
             }
+            is AuthEvent.VerifyCodePressed -> verifyOtp()
             is AuthEvent.ResendCodePressed -> {
                 if (_state.value.isResendAvailable) {
                     requestOtp()
@@ -57,13 +56,16 @@ class AuthViewModel @Inject constructor(
             result.fold(
                 onSuccess = { message ->
                     val devCode = extractDevCode(message)
+                    if (devCode != null) {
+                        Log.d("OTP_DEV", "Dev code: $devCode")
+                    }
                     _state.value = _state.value.copy(
                         step = AuthStep.Otp,
                         isLoading = false,
                         isResendAvailable = false,
                         resendSecondsLeft = Constants.OTP_RESEND_SECONDS,
                         devCode = devCode,
-                        code = devCode ?: ""
+                        code = ""
                     )
                     startResendTimer()
                 },

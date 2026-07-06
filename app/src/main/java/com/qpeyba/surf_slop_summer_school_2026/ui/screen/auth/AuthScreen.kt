@@ -120,17 +120,6 @@ fun AuthScreen(
                     color = TextPrimary,
                     textAlign = TextAlign.Center
                 )
-                val devCode = state.devCode
-                if (devCode != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Dev code: $devCode",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Terracotta,
-                        textAlign = TextAlign.Center
-                    )
-                }
                 Spacer(modifier = Modifier.height(24.dp))
 
                 OtpInput(
@@ -148,6 +137,14 @@ fun AuthScreen(
                         textAlign = TextAlign.Center
                     )
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ChefButton(
+                    text = "Подтвердить",
+                    onClick = { viewModel.onEvent(AuthEvent.VerifyCodePressed) },
+                    enabled = state.code.length == 6 && !state.isLoading,
+                    isLoading = state.isLoading
+                )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (state.isResendAvailable) {
