@@ -216,11 +216,11 @@ func (r *BookingRepository) Cancel(ctx context.Context, clientID, bookingID stri
 	defer tx.Rollback(ctx)
 
 	var locked struct {
-		OwnerID   string
-		SlotID    string
-		Status    string
-		StartAt   time.Time
-		Price     float64
+		OwnerID string
+		SlotID  string
+		Status  string
+		StartAt time.Time
+		Price   float64
 	}
 	err = tx.QueryRow(ctx, `
 SELECT b.client_id::text, b.slot_id::text, b.status, s.start_at, s.price
@@ -547,8 +547,6 @@ func scanBooking(scanner interface{ Scan(...any) error }) (booking.Booking, erro
 }
 
 func bookingScanDest(b *booking.Booking) []any {
-	var slotPhotoUrls []string
-	var slotInstructorSpecialization *string
 	return []any{
 		&b.ID,
 		&b.SlotID,
@@ -563,7 +561,7 @@ func bookingScanDest(b *booking.Booking) []any {
 		&b.Slot.ID,
 		&b.Slot.DateTime,
 		&b.Slot.Menu,
-		&slotPhotoUrls,
+		&b.Slot.PhotoUrls,
 		&b.Slot.Difficulty,
 		&b.Slot.Capacity,
 		&b.Slot.BookedCount,
@@ -574,7 +572,7 @@ func bookingScanDest(b *booking.Booking) []any {
 		&b.Slot.InstructorName,
 		&b.Slot.InstructorStatus,
 		&b.Slot.InstructorRating,
-		&slotInstructorSpecialization,
+		&b.Slot.InstructorSpecialization,
 	}
 }
 

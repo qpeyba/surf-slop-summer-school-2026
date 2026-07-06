@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ErrUnauthorized    = errors.New("unauthorized")
-	ErrInvalidName     = errors.New("invalid name")
+	ErrUnauthorized = errors.New("unauthorized")
+	ErrInvalidName  = errors.New("invalid name")
 )
 
 type Client struct {

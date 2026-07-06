@@ -12,21 +12,21 @@ import (
 )
 
 type Slot struct {
-	ID             string
-	Menu           string
-	Difficulty     string
-	PhotoUrls      []string
-	InstructorID   string
-	InstructorName string
-	InstructorStatus   string
-	InstructorRating   float64
+	ID                       string
+	Menu                     string
+	Difficulty               string
+	PhotoUrls                []string
+	InstructorID             string
+	InstructorName           string
+	InstructorStatus         string
+	InstructorRating         float64
 	InstructorSpecialization *string
-	DateTime       time.Time
-	Capacity       int
-	BookedCount    int
-	Price          float64
-	Address        string
-	Status         string
+	DateTime                 time.Time
+	Capacity                 int
+	BookedCount              int
+	Price                    float64
+	Address                  string
+	Status                   string
 }
 
 type SlotFilters struct {

@@ -45,20 +45,21 @@ type Booking struct {
 }
 
 type BookingSlot struct {
-	ID                         string
-	DateTime                   time.Time
-	Menu                       string
-	Difficulty                 string
-	Capacity                   int
-	BookedCount                int
-	Price                      float64
-	Address                    string
-	Status                     string
-	InstructorID               string
-	InstructorName             string
-	InstructorStatus           string
-	InstructorRating           float64
-	InstructorSpecialization   *string
+	ID                       string
+	DateTime                 time.Time
+	Menu                     string
+	PhotoUrls                []string
+	Difficulty               string
+	Capacity                 int
+	BookedCount              int
+	Price                    float64
+	Address                  string
+	Status                   string
+	InstructorID             string
+	InstructorName           string
+	InstructorStatus         string
+	InstructorRating         float64
+	InstructorSpecialization *string
 }
 
 type CreateCommand struct {
@@ -76,9 +77,9 @@ type ListCommand struct {
 }
 
 type TransferCommand struct {
-	Token      string
-	BookingID  string
-	NewSlotID  string
+	Token     string
+	BookingID string
+	NewSlotID string
 }
 
 type UpsertReviewCommand struct {

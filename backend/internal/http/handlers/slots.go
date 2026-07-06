@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	httpapi "summer-school-2026/backend/internal/http"
@@ -25,6 +24,10 @@ func (h *SlotHandler) Register(r chi.Router) {
 }
 
 func (h *SlotHandler) ListSlots(w http.ResponseWriter, r *http.Request) {
+	_, ok := bearerOrUnauthorized(w, r)
+	if !ok {
+		return
+	}
 	q := r.URL.Query()
 	limit, offset := pagination(q.Get("limit"), q.Get("offset"))
 	filters := postgres.SlotFilters{Limit: limit, Offset: offset}
@@ -60,6 +63,10 @@ func (h *SlotHandler) ListSlots(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SlotHandler) GetSlot(w http.ResponseWriter, r *http.Request) {
+	_, ok := bearerOrUnauthorized(w, r)
+	if !ok {
+		return
+	}
 	slotID := chi.URLParam(r, "slotId")
 	slot, found, err := h.repo.GetByID(r.Context(), slotID)
 	if err != nil {
@@ -76,18 +83,18 @@ func (h *SlotHandler) GetSlot(w http.ResponseWriter, r *http.Request) {
 // --- slot DTOs ---
 
 type SlotItem struct {
-	ID           string        `json:"id"`
-	DateTime     string        `json:"dateTime"`
-	Menu         string        `json:"menu"`
-	PhotoUrls    []string      `json:"photoUrls,omitempty"`
-	Difficulty   string        `json:"difficulty"`
-	InstructorID string        `json:"instructorId"`
+	ID           string         `json:"id"`
+	DateTime     string         `json:"dateTime"`
+	Menu         string         `json:"menu"`
+	PhotoUrls    []string       `json:"photoUrls,omitempty"`
+	Difficulty   string         `json:"difficulty"`
+	InstructorID string         `json:"instructorId"`
 	Instructor   InstructorItem `json:"instructor"`
-	Capacity     int           `json:"capacity"`
-	BookedCount  int           `json:"bookedCount"`
-	Price        float64       `json:"price"`
-	Address      string        `json:"address"`
-	Status       string        `json:"status"`
+	Capacity     int            `json:"capacity"`
+	BookedCount  int            `json:"bookedCount"`
+	Price        float64        `json:"price"`
+	Address      string         `json:"address"`
+	Status       string         `json:"status"`
 }
 
 type InstructorItem struct {
@@ -151,11 +158,4 @@ func atoi(s string) int {
 		n = n*10 + int(c-'0')
 	}
 	return n
-}
-
-func defaultIfEmpty(s, def string) string {
-	if strings.TrimSpace(s) == "" {
-		return def
-	}
-	return s
 }

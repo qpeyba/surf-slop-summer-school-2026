@@ -72,6 +72,16 @@ type BookingPage struct {
 	Total int           `json:"total"`
 }
 
+type BookingPageExpanded struct {
+	Items []BookingItemWithSlot `json:"items"`
+	Total int                   `json:"total"`
+}
+
+type BookingItemWithSlot struct {
+	BookingItem
+	Slot SlotItem `json:"slot"`
+}
+
 func (h *BookingHandler) ListBookings(w http.ResponseWriter, r *http.Request) {
 	token, ok := bearerOrUnauthorized(w, r)
 	if !ok {
@@ -80,6 +90,7 @@ func (h *BookingHandler) ListBookings(w http.ResponseWriter, r *http.Request) {
 
 	q := r.URL.Query()
 	limit, offset := pagination(q.Get("limit"), q.Get("offset"))
+	expandSlot := q.Get("expand") == "slot"
 
 	var status *string
 	if s := q.Get("status"); s != "" {
@@ -89,6 +100,18 @@ func (h *BookingHandler) ListBookings(w http.ResponseWriter, r *http.Request) {
 	list, err := h.service.List(r.Context(), booking.ListCommand{Token: token, Status: status, Limit: limit, Offset: offset})
 	if err != nil {
 		writeBookingError(w, err)
+		return
+	}
+
+	if expandSlot {
+		items := make([]BookingItemWithSlot, 0, len(list.Items))
+		for _, item := range list.Items {
+			items = append(items, BookingItemWithSlot{
+				BookingItem: bookingToItem(item),
+				Slot:        bookingSlotToItem(item.Slot),
+			})
+		}
+		httpapi.WriteJSON(w, http.StatusOK, BookingPageExpanded{Items: items, Total: list.Total})
 		return
 	}
 
@@ -212,16 +235,16 @@ func (h *BookingHandler) UpsertReview(w http.ResponseWriter, r *http.Request) {
 // --- DTOs ---
 
 type BookingItem struct {
-	ID            string     `json:"id"`
-	SlotID        string     `json:"slotId"`
-	ClientID      string     `json:"clientId"`
-	EquipmentType string     `json:"equipmentType"`
-	Status        string     `json:"status"`
-	RefundAmount  *float64   `json:"refundAmount,omitempty"`
-	ReviewRating  *int       `json:"reviewRating,omitempty"`
-	ReviewText    *string    `json:"reviewText,omitempty"`
-	CreatedAt     string     `json:"createdAt"`
-	CancelledAt   *string    `json:"cancelledAt,omitempty"`
+	ID            string   `json:"id"`
+	SlotID        string   `json:"slotId"`
+	ClientID      string   `json:"clientId"`
+	EquipmentType string   `json:"equipmentType"`
+	Status        string   `json:"status"`
+	RefundAmount  *float64 `json:"refundAmount,omitempty"`
+	ReviewRating  *int     `json:"reviewRating,omitempty"`
+	ReviewText    *string  `json:"reviewText,omitempty"`
+	CreatedAt     string   `json:"createdAt"`
+	CancelledAt   *string  `json:"cancelledAt,omitempty"`
 }
 
 func bookingToItem(b booking.Booking) BookingItem {
@@ -241,6 +264,29 @@ func bookingToItem(b booking.Booking) BookingItem {
 		item.CancelledAt = &s
 	}
 	return item
+}
+
+func bookingSlotToItem(s booking.BookingSlot) SlotItem {
+	return SlotItem{
+		ID:           s.ID,
+		DateTime:     s.DateTime.Format(time.RFC3339),
+		Menu:         s.Menu,
+		PhotoUrls:    s.PhotoUrls,
+		Difficulty:   s.Difficulty,
+		InstructorID: s.InstructorID,
+		Instructor: InstructorItem{
+			ID:             s.InstructorID,
+			Name:           s.InstructorName,
+			Status:         s.InstructorStatus,
+			Rating:         s.InstructorRating,
+			Specialization: s.InstructorSpecialization,
+		},
+		Capacity:    s.Capacity,
+		BookedCount: s.BookedCount,
+		Price:       s.Price,
+		Address:     s.Address,
+		Status:      s.Status,
+	}
 }
 
 func writeBookingError(w http.ResponseWriter, err error) {

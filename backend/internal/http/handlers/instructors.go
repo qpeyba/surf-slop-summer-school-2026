@@ -22,6 +22,10 @@ func (h *InstructorHandler) Register(r chi.Router) {
 }
 
 func (h *InstructorHandler) GetInstructor(w http.ResponseWriter, r *http.Request) {
+	_, ok := bearerOrUnauthorized(w, r)
+	if !ok {
+		return
+	}
 	id := chi.URLParam(r, "instructorId")
 	instructor, found, err := h.repo.GetByID(r.Context(), id)
 	if err != nil {
