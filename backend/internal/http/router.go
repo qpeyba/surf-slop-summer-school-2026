@@ -29,7 +29,7 @@ func NewRouter(logger *slog.Logger, adminRegistrar RouteRegistrar, registrars ..
 		WriteError(w, http.StatusNotFound, CodeNotFound, "Запрашиваемый ресурс не найден.", nil)
 	})
 	router.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		WriteError(w, http.StatusNotFound, CodeNotFound, "Запрашиваемый ресурс не найден.", nil)
+		WriteError(w, http.StatusMethodNotAllowed, CodeBadRequest, "Метод не поддерживается для данного ресурса.", nil)
 	})
 	router.Get("/healthz", healthHandler)
 	router.Get("/readyz", healthHandler)

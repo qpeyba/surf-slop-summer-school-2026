@@ -1,0 +1,357 @@
+[
+  {
+    "summary": "Smoke: Полный цикл — вход → бронирование → отмена",
+    "description": "Сквозной сценарий: авторизация, выбор класса, бронирование, отмена. UC-1, UC-2.",
+    "labels": ["smoke", "scenario", "auth", "booking"],
+    "priority": "High",
+    "estimate": 15,
+    "path": "Волна/Сценарные/Smoke",
+    "steps": [
+      {
+        "action": "{{POST}} /auth/otp/request",
+        "data": "{ \"phone\": \"+79001234567\" }",
+        "expected": "HTTP 202, код отправлен (в логе или теле ответа в dev-режиме)"
+      },
+      {
+        "action": "{{POST}} /auth/otp/verify",
+        "data": "{ \"phone\": \"+79001234567\", \"code\": \"<из лога>\" }",
+        "expected": "HTTP 200, accessToken, открывается TabBar"
+      },
+      {
+        "action": "{{GET}} /slots?from=2026-07-06&to=2026-07-13",
+        "data": "",
+        "expected": "HTTP 200, список классов на 7 дней, items не пуст"
+      },
+      {
+        "action": "{{POST}} /bookings",
+        "data": "{ \"slotId\": \"<первый slot из ответа>\", \"equipmentType\": \"Своя\" }",
+        "expected": "HTTP 201, booking.id, status = Активна"
+      },
+      {
+        "action": "{{POST}} /bookings/{bookingId}/cancel",
+        "data": "",
+        "expected": "HTTP 200, booking.status = ОтмененаКлиентом"
+      }
+    ]
+  },
+  {
+    "summary": "Smoke: Регистрация нового пользователя",
+    "description": "Первый вход по SMS → создание профиля → бронирование. UC-1.",
+    "labels": ["smoke", "scenario", "auth"],
+    "priority": "High",
+    "estimate": 12,
+    "path": "Волна/Сценарные/Smoke",
+    "steps": [
+      {
+        "action": "{{POST}} /auth/otp/request",
+        "data": "{ \"phone\": \"+79009999999\" }",
+        "expected": "HTTP 202, код отправлен"
+      },
+      {
+        "action": "{{POST}} /auth/otp/verify",
+        "data": "{ \"phone\": \"+79009999999\", \"code\": \"<из лога>\" }",
+        "expected": "HTTP 200, isNew = true, accessToken получен"
+      },
+      {
+        "action": "{{GET}} /profile",
+        "data": "",
+        "expected": "HTTP 200, allergies пуст, loyaltyPoints = 0"
+      }
+    ]
+  },
+  {
+    "summary": "Smoke: Просмотр расписания с фильтрацией по дате",
+    "description": "Открыть расписание, фильтр по дате, просмотр карточки класса. UC-1.",
+    "labels": ["smoke", "scenario", "slots"],
+    "priority": "High",
+    "estimate": 8,
+    "path": "Волна/Сценарные/Smoke",
+    "steps": [
+      {
+        "action": "{{GET}} /slots?from=2026-07-06&to=2026-07-13",
+        "data": "",
+        "expected": "HTTP 200, items[*], total > 0"
+      },
+      {
+        "action": "{{GET}} /slots?from=2026-07-10&to=2026-07-12",
+        "data": "",
+        "expected": "HTTP 200, items отфильтрованы по дате"
+      },
+      {
+        "action": "{{GET}} /slots/{slotId}",
+        "data": "",
+        "expected": "HTTP 200, все поля: menu, difficulty, instructor, capacity, bookedCount, price, address, photoUrls"
+      }
+    ]
+  },
+  {
+    "summary": "Smoke: Перенос брони",
+    "description": "Активная бронь → перенести на другой слот → подтвердить. UC-3.",
+    "labels": ["smoke", "scenario", "booking"],
+    "priority": "High",
+    "estimate": 10,
+    "path": "Волна/Сценарные/Smoke",
+    "steps": [
+      {
+        "action": "{{POST}} /bookings",
+        "data": "{ \"slotId\": \"<slot-1>\", \"equipmentType\": \"Своя\" }",
+        "expected": "HTTP 201, booking.status = Активна"
+      },
+      {
+        "action": "{{POST}} /bookings/{bookingId}/transfer",
+        "data": "{ \"newSlotId\": \"<slot-2>\" }",
+        "expected": "HTTP 200, oldBooking.status = ОтмененаКлиентом, newBooking.status = Активна, newBooking.equipmentType наследован из старой"
+      }
+    ]
+  },
+  {
+    "summary": "Smoke: Оценка шефа после завершения класса",
+    "description": "Завершённая бронь → оценить → редактировать. UC-4.",
+    "labels": ["smoke", "scenario", "booking"],
+    "priority": "High",
+    "estimate": 8,
+    "path": "Волна/Сценарные/Smoke",
+    "steps": [
+      {
+        "action": "{{PUT}} /bookings/{bookingId}/review",
+        "data": "{ \"rating\": 5, \"text\": \"Отличный шеф!\" }",
+        "expected": "HTTP 200, review.rating = 5, review.text = Отличный шеф!, instructorRating обновлён"
+      },
+      {
+        "action": "{{PUT}} /bookings/{bookingId}/review",
+        "data": "{ \"rating\": 4 }",
+        "expected": "HTTP 200, review.rating = 4, текст удалён/обновлён, instructorRating пересчитан"
+      }
+    ]
+  },
+  {
+    "summary": "Smoke: История броней с группировкой по статусам",
+    "description": "Мои брони → группировка по статусам → все карточки. UC-5.",
+    "labels": ["smoke", "scenario", "booking"],
+    "priority": "High",
+    "estimate": 8,
+    "path": "Волна/Сценарные/Smoke",
+    "steps": [
+      {
+        "action": "{{GET}} /bookings?expand=slot",
+        "data": "",
+        "expected": "HTTP 200, items сгруппированы по status (Активна, Завершена, ОтмененаКлиентом), total > 0"
+      },
+      {
+        "action": "{{GET}} /bookings?status=Активна",
+        "data": "",
+        "expected": "HTTP 200, только активные брони"
+      },
+      {
+        "action": "{{GET}} /bookings?status=Завершена",
+        "data": "",
+        "expected": "HTTP 200, только завершённые брони"
+      }
+    ]
+  },
+  {
+    "summary": "Sanity: Неверный OTP 5 раз — блокировка",
+    "description": "Ввод неверного кода 5 раз → блокировка → запрос нового кода. UC-1 edge case.",
+    "labels": ["sanity", "scenario", "auth"],
+    "priority": "Medium",
+    "estimate": 10,
+    "path": "Волна/Сценарные/Sanity",
+    "steps": [
+      {
+        "action": "{{POST}} /auth/otp/request",
+        "data": "{ \"phone\": \"+79001234567\" }",
+        "expected": "HTTP 202"
+      },
+      {
+        "action": "{{POST}} /auth/otp/verify × 5",
+        "data": "{ \"phone\": \"+79001234567\", \"code\": \"000000\" }",
+        "expected": "5 раз 409 invalid_code, после 5-й попытки код блокируется"
+      },
+      {
+        "action": "{{POST}} /auth/otp/verify",
+        "data": "{ \"phone\": \"+79001234567\", \"code\": \"<правильный>\" }",
+        "expected": "409 или 410 — код заблокирован/истёк после 5 попыток"
+      }
+    ]
+  },
+  {
+    "summary": "Sanity: Просроченный токен — редирект на авторизацию",
+    "description": "Токен истёк → 401 → редирект на экран авторизации → перелогин.",
+    "labels": ["sanity", "scenario", "auth"],
+    "priority": "Medium",
+    "estimate": 6,
+    "path": "Волна/Сценарные/Sanity",
+    "steps": [
+      {
+        "action": "{{GET}} /profile",
+        "data": "Authorization: Bearer <expired-token>",
+        "expected": "HTTP 401, code = unauthorized"
+      },
+      {
+        "action": "{{POST}} /auth/otp/request + /verify",
+        "data": "новый токен",
+        "expected": "HTTP 200, доступ восстановлен"
+      }
+    ]
+  },
+  {
+    "summary": "Sanity: Бронирование на полный класс — «Мест нет»",
+    "description": "Попытка записи на класс без свободных мест. UC-1 exception 7a.",
+    "labels": ["sanity", "scenario", "booking"],
+    "priority": "Medium",
+    "estimate": 6,
+    "path": "Волна/Сценарные/Sanity",
+    "steps": [
+      {
+        "action": "{{POST}} /bookings",
+        "data": "{ \"slotId\": \"<full-slot>\", \"equipmentType\": \"Прокат\" }",
+        "expected": "HTTP 409, code = slot_full"
+      }
+    ]
+  },
+  {
+    "summary": "Sanity: Отмена ≤12ч — предупреждение о 50% возврате",
+    "description": "Отмена за ≤12 часов до начала — возврат 50%, место ОСВОБОЖДАЕТСЯ. UC-2 alt 4a. Тест для BUG-003.",
+    "labels": ["sanity", "scenario", "booking", "bug-003"],
+    "priority": "Medium",
+    "estimate": 10,
+    "path": "Волна/Сценарные/Sanity",
+    "steps": [
+      {
+        "action": "Создать бронь на класс, до которого осталось <12 часов",
+        "data": "",
+        "expected": "Бронь создана, статус Активна"
+      },
+      {
+        "action": "{{POST}} /bookings/{bookingId}/cancel",
+        "data": "",
+        "expected": "HTTP 200, refundAmount = price * 0.5, статус = ОтмененаКлиентом"
+      },
+      {
+        "action": "{{GET}} /slots/{slotId}",
+        "data": "",
+        "expected": "bookedCount уменьшился на 1 — МЕСТО ОСВОБОЖДЕНО (BUG-003 fix)"
+      }
+    ]
+  },
+  {
+    "summary": "Sanity: Перенос на полный слот — отказ, старая бронь активна",
+    "description": "Перенос на слот без мест → 409 slot_full, старая бронь остаётся Активна. UC-3 exception 5a.",
+    "labels": ["sanity", "scenario", "booking"],
+    "priority": "Medium",
+    "estimate": 8,
+    "path": "Волна/Сценарные/Sanity",
+    "steps": [
+      {
+        "action": "{{POST}} /bookings/{bookingId}/transfer",
+        "data": "{ \"newSlotId\": \"<full-slot>\" }",
+        "expected": "HTTP 409, code = slot_full"
+      },
+      {
+        "action": "{{GET}} /bookings/{bookingId}",
+        "data": "",
+        "expected": "HTTP 200, booking.status = Активна (старая бронь НЕ отменена)"
+      }
+    ]
+  },
+  {
+    "summary": "Sanity: Попытка перенести чужую бронь — 403 Forbidden",
+    "description": "Клиент B пытается перенести бронь Клиента A. Должен получить 403. Тест для BUG-002.",
+    "labels": ["sanity", "scenario", "booking", "security", "bug-002"],
+    "priority": "Medium",
+    "estimate": 8,
+    "path": "Волна/Сценарные/Sanity",
+    "steps": [
+      {
+        "action": "Авторизоваться как Клиент A, создать бронь",
+        "data": "",
+        "expected": "Бронь создана"
+      },
+      {
+        "action": "Авторизоваться как Клиент B",
+        "data": "",
+        "expected": "Токен Клиента B получен"
+      },
+      {
+        "action": "{{POST}} /bookings/{bookingId_of_A}/transfer",
+        "data": "{ \"newSlotId\": \"<другой слот>\" }",
+        "expected": "HTTP 403, code = forbidden (BUG-002 fix)"
+      }
+    ]
+  },
+  {
+    "summary": "Sanity: Идемпотентность — повторный запрос с тем же ключом",
+    "description": "Отправить бронь с Idempotency-Key, повторить тот же запрос — та же бронь без дублирования. FR-3.1.",
+    "labels": ["sanity", "scenario", "booking"],
+    "priority": "Medium",
+    "estimate": 6,
+    "path": "Волна/Сценарные/Sanity",
+    "steps": [
+      {
+        "action": "{{POST}} /bookings (с Idempotency-Key: key-1)",
+        "data": "{ \"slotId\": \"<slot>\", \"equipmentType\": \"Прокат\" }",
+        "expected": "HTTP 201"
+      },
+      {
+        "action": "{{POST}} /bookings (с Idempotency-Key: key-1, то же тело)",
+        "data": "{ \"slotId\": \"<slot>\", \"equipmentType\": \"Прокат\" }",
+        "expected": "HTTP 201, тот же bookingId, bookedCount не изменился повторно"
+      }
+    ]
+  },
+  {
+    "summary": "Sanity: Идемпотентность — другое тело с тем же ключом",
+    "description": "Отправить первый запрос с ключом, затем другой запрос с тем же ключом — 409 конфликт.",
+    "labels": ["sanity", "scenario", "booking"],
+    "priority": "Medium",
+    "estimate": 5,
+    "path": "Волна/Сценарные/Sanity",
+    "steps": [
+      {
+        "action": "{{POST}} /bookings (с Idempotency-Key: key-2)",
+        "data": "{ \"slotId\": \"<slot-1>\", \"equipmentType\": \"Прокат\" }",
+        "expected": "HTTP 201"
+      },
+      {
+        "action": "{{POST}} /bookings (с Idempotency-Key: key-2, ДРУГОЕ тело)",
+        "data": "{ \"slotId\": \"<slot-1>\", \"equipmentType\": \"Своя\" }",
+        "expected": "HTTP 409, code = idempotency_conflict"
+      }
+    ]
+  },
+  {
+    "summary": "Sanity: Оценка незавершённой брони — 403",
+    "description": "Попытка оценить активную (не завершённую) бронь. Должен быть 403.",
+    "labels": ["sanity", "scenario", "booking"],
+    "priority": "Medium",
+    "estimate": 4,
+    "path": "Волна/Сценарные/Sanity",
+    "steps": [
+      {
+        "action": "{{PUT}} /bookings/{activeBookingId}/review",
+        "data": "{ \"rating\": 5 }",
+        "expected": "HTTP 403, code = booking_not_completed"
+      }
+    ]
+  },
+  {
+    "summary": "Sanity: Двойная бронь — 409 конфликт",
+    "description": "Попытка записаться на класс дважды. Ожидается 409 double_booking.",
+    "labels": ["sanity", "scenario", "booking"],
+    "priority": "Medium",
+    "estimate": 5,
+    "path": "Волна/Сценарные/Sanity",
+    "steps": [
+      {
+        "action": "{{POST}} /bookings",
+        "data": "{ \"slotId\": \"<slot>\", \"equipmentType\": \"Своя\" }",
+        "expected": "HTTP 201"
+      },
+      {
+        "action": "{{POST}} /bookings (повтор без Idempotency-Key)",
+        "data": "{ \"slotId\": \"<slot>\", \"equipmentType\": \"Прокат\" }",
+        "expected": "HTTP 409, code = double_booking"
+      }
+    ]
+  }
+]

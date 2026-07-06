@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pressly/goose/v3"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -92,4 +93,18 @@ func databaseURLWithSearchPath(t *testing.T, databaseURL, schemaName string) str
 	parsed.RawQuery = query.Encode()
 
 	return parsed.String()
+}
+
+func SetupDB(t *testing.T) *pgxpool.Pool {
+	t.Helper()
+
+	databaseURL := PrepareDatabase(t)
+
+	pool, err := pgxpool.New(context.Background(), databaseURL)
+	if err != nil {
+		t.Fatalf("create pool: %v", err)
+	}
+	t.Cleanup(func() { pool.Close() })
+
+	return pool
 }

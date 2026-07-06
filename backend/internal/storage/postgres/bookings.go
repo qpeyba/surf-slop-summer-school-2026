@@ -313,13 +313,11 @@ WHERE id = $1`, bookingID, now, refundAmount); err != nil {
 		return booking.Booking{}, fmt.Errorf("update booking cancel status: %w", err)
 	}
 
-	if remaining > 12*time.Hour {
-		if _, err := tx.Exec(ctx, `
+	if _, err := tx.Exec(ctx, `
 UPDATE slots
 SET booked_count = booked_count - 1
 WHERE id = $1`, locked.SlotID); err != nil {
-			return booking.Booking{}, fmt.Errorf("return slot booked count: %w", err)
-		}
+		return booking.Booking{}, fmt.Errorf("return slot booked count: %w", err)
 	}
 
 	cancelled, found, err := bookingByID(ctx, tx, bookingID)
@@ -347,16 +345,20 @@ func (r *BookingRepository) Transfer(ctx context.Context, clientID, bookingID, n
 		EquipmentType string
 		Status        string
 	}
+	var ownerID string
 	err = tx.QueryRow(ctx, `
 SELECT client_id::text, slot_id::text, equipment_type, status
 FROM bookings
 WHERE id = $1
-FOR UPDATE`, bookingID).Scan(&clientID, &old.SlotID, &old.EquipmentType, &old.Status)
+FOR UPDATE`, bookingID).Scan(&ownerID, &old.SlotID, &old.EquipmentType, &old.Status)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return booking.Booking{}, booking.Booking{}, booking.ErrNotFound
 	}
 	if err != nil {
 		return booking.Booking{}, booking.Booking{}, fmt.Errorf("lock old booking: %w", err)
+	}
+	if ownerID != clientID {
+		return booking.Booking{}, booking.Booking{}, booking.ErrForbidden
 	}
 	if old.Status != "Активна" {
 		return booking.Booking{}, booking.Booking{}, booking.ErrAlreadyCancelled

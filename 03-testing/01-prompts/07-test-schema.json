@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TestCase",
+  "description": "Схема одного тест-кейса для «Шеф-стол»",
+  "type": "object",
+  "required": ["summary", "priority", "steps"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "Название теста в формате: Экран → Действие → Ожидание"
+    },
+    "description": {
+      "type": "string",
+      "description": "Краткое описание теста, ссылки на FR/UC"
+    },
+    "labels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Метки: smoke, component, scenario, layout, auth, booking, slots, profile, instructors"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["High", "Medium", "Low"],
+      "description": "Приоритет теста"
+    },
+    "estimate": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Оценка времени выполнения в минутах"
+    },
+    "sessionId": {
+      "type": "string",
+      "description": "Идентификатор сессии генерации (опционально)"
+    },
+    "path": {
+      "type": "string",
+      "description": "Путь в репозитории тестов, напр. Волна/Компонентные/Авторизация"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      },
+      "description": "Приложенные файлы (скриншоты)"
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["action", "expected"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Действие: Подготовить / Выполнить / {{METHOD}} /path"
+          },
+          "data": {
+            "type": "string",
+            "description": "Дополнительные данные (тестовые значения)"
+          },
+          "expected": {
+            "type": "string",
+            "description": "Ожидаемый результат"
+          }
+        }
+      }
+    }
+  }
+}
