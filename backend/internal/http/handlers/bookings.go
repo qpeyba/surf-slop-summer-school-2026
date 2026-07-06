@@ -124,6 +124,10 @@ func (h *BookingHandler) ListBookings(w http.ResponseWriter, r *http.Request) {
 
 // --- GetBooking ---
 
+type BookingDetailResponse struct {
+	Booking BookingItemWithSlot `json:"booking"`
+}
+
 func (h *BookingHandler) GetBooking(w http.ResponseWriter, r *http.Request) {
 	token, ok := bearerOrUnauthorized(w, r)
 	if !ok {
@@ -135,7 +139,12 @@ func (h *BookingHandler) GetBooking(w http.ResponseWriter, r *http.Request) {
 		writeBookingError(w, err)
 		return
 	}
-	httpapi.WriteJSON(w, http.StatusOK, BookingResponse{Booking: bookingToItem(found)})
+	httpapi.WriteJSON(w, http.StatusOK, BookingDetailResponse{
+		Booking: BookingItemWithSlot{
+			BookingItem: bookingToItem(found),
+			Slot:        bookingSlotToItem(found.Slot),
+		},
+	})
 }
 
 // --- CancelBooking ---
@@ -300,7 +309,7 @@ func writeBookingError(w http.ResponseWriter, err error) {
 	case errors.Is(err, booking.ErrIdempotencyConflict):
 		httpapi.WriteError(w, http.StatusConflict, httpapi.CodeIdempotencyConflict, "Ключ идемпотентности уже использован для другого запроса.", nil)
 	case errors.Is(err, booking.ErrAlreadyCancelled):
-		httpapi.WriteError(w, http.StatusConflict, httpapi.CodeAlreadyCancelled, "Бронь уже отменена или завершена.", nil)
+		httpapi.WriteError(w, http.StatusConflict, httpapi.CodeBookingNotActive, "Бронь уже отменена или завершена.", nil)
 	case errors.Is(err, booking.ErrForbidden):
 		httpapi.WriteError(w, http.StatusForbidden, httpapi.CodeForbidden, "Доступ запрещён.", nil)
 	case errors.Is(err, booking.ErrNotFound):
@@ -312,9 +321,9 @@ func writeBookingError(w http.ResponseWriter, err error) {
 	case errors.Is(err, booking.ErrSlotStarted):
 		httpapi.WriteError(w, http.StatusGone, httpapi.CodeSlotStarted, "Запись закрыта. До начала осталось менее 10 минут.", nil)
 	case errors.Is(err, booking.ErrNotCompleted):
-		httpapi.WriteError(w, http.StatusForbidden, "booking_not_completed", "Оценить шефа можно только после завершения класса.", nil)
+		httpapi.WriteError(w, http.StatusForbidden, httpapi.CodeBookingNotCompleted, "Оценить шефа можно только после завершения класса.", nil)
 	case errors.Is(err, booking.ErrInvalidRating):
-		httpapi.WriteError(w, http.StatusBadRequest, "invalid_rating", "Рейтинг должен быть от 1 до 5.", nil)
+		httpapi.WriteError(w, http.StatusBadRequest, httpapi.CodeInvalidRating, "Рейтинг должен быть от 1 до 5.", nil)
 	default:
 		httpapi.WriteError(w, http.StatusInternalServerError, httpapi.CodeInternalError, "Что-то пошло не так. Попробуйте ещё раз позже.", nil)
 	}
